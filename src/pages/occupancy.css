@@ -1,0 +1,22 @@
+.occupancy-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:14px; }
+.occupancy-toolbar h2 { margin:0; }
+.occupancy-toolbar p { margin:4px 0 0; color:#6b7280; font-size:13px; }
+.occupancy-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.occupancy-floor-select { min-width:160px; }
+.occupancy-legend { display:flex; gap:16px; flex-wrap:wrap; color:#5b6472; font-size:13px; margin-bottom:16px; }
+.occupancy-legend span { display:flex; align-items:center; gap:6px; }
+.occupancy-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.occupancy-dot-active { background:#2f7d61; }.occupancy-dot-booked { background:#3c74b9; }.occupancy-dot-free { background:#edf5ef; border:1px solid #b7d7bf; }.occupancy-dot-repair { background:#8a8f98; }
+.occupancy-scroll { overflow:auto; border:1px solid var(--hotel-border); border-radius:10px; transition:opacity .2s; }.occupancy-scroll.is-refreshing { opacity:.68; }
+.occupancy-grid { width:max-content; min-width:100%; background:#fff; }
+.occupancy-header,.occupancy-room-row { display:grid; grid-template-columns:180px repeat(var(--day-count),52px); }
+.occupancy-header { position:sticky; top:0; z-index:4; background:#f8f4eb; border-bottom:1px solid var(--hotel-border); }
+.occupancy-room-head { position:sticky; left:0; z-index:5; padding:12px; display:flex; align-items:center; background:#f8f4eb; border-right:1px solid var(--hotel-border); font-weight:700; }
+.occupancy-day-head { height:53px; display:grid; place-content:center; text-align:center; border-right:1px solid #e8dfcf; font-size:11px; color:#697386; }.occupancy-day-head strong { color:#2d3748; font-size:14px; }.occupancy-day-head.is-today,.occupancy-cell.is-today { background:#fff3d7; }
+.occupancy-room-row { border-bottom:1px solid #ebe4d7; min-height:48px; }
+.occupancy-room-label { position:sticky; left:0; z-index:3; padding:9px 12px; background:#fffaf1; border-right:1px solid var(--hotel-border); display:flex; flex-direction:column; justify-content:center; gap:2px; }.occupancy-room-label strong { color:#263b55; }.occupancy-room-label span { color:#77808d; font-size:11px; white-space:nowrap; }
+.occupancy-room-timeline { display:grid; grid-template-columns:repeat(var(--day-count),52px); grid-template-rows:repeat(var(--lanes),30px); gap:4px 0; padding:5px 0; min-height:48px; position:relative; }.occupancy-cell { grid-row:1 / span var(--lanes); border-right:1px solid #f0e9dc; background:#fbfdfb; }
+.occupancy-room-timeline.is-repair .occupancy-cell { background:#eef0f2; }.repair-label { grid-column:1 / -1; grid-row:1 / span var(--lanes); z-index:1; display:grid; place-items:center; color:#6d747d; font-size:12px; font-weight:700; letter-spacing:.04em; }
+.occupancy-booking { z-index:2; margin:0 3px; border:0; border-radius:5px; padding:0 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; color:#fff; font-size:11px; font-weight:600; cursor:pointer; min-width:0; }.occupancy-booking:hover { filter:brightness(.92); }.occupancy-booking-active { background:#2f7d61; }.occupancy-booking-booked { background:#3c74b9; }
+.occupancy-empty { padding:28px; color:#6b7280; text-align:center; }.occupancy-detail { display:grid; gap:11px; }.occupancy-detail div { display:flex; justify-content:space-between; gap:18px; border-bottom:1px solid #eee7dc; padding-bottom:8px; }.occupancy-detail span { color:#737b86; }
+@media (max-width:700px) { .occupancy-toolbar { align-items:flex-start; flex-direction:column; }.occupancy-actions { justify-content:flex-start; }.occupancy-actions .ant-btn { padding-inline:8px; }.occupancy-floor-select { min-width:145px; } }

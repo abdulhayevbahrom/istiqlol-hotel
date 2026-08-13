@@ -1,0 +1,96 @@
+.hall-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.hall-full {
+  grid-column: 1 / -1;
+}
+
+.hall-state-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 0 !important;
+  font-weight: 600;
+}
+
+.hall-state-upcoming {
+  background: #eef3ff !important;
+  color: #315eb5 !important;
+}
+
+.hall-state-past {
+  background: #edf8f0 !important;
+  color: #2b7f3f !important;
+}
+
+.hall-state-ongoing {
+  background: #fff7e8 !important;
+  color: #a56a16 !important;
+}
+
+.hall-state-canceled {
+  background: #fff0f0 !important;
+  color: #a82929 !important;
+}
+
+.hall-payment-info {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px dashed #d8cab3;
+  border-radius: 8px;
+  background: #fffaf2;
+  color: #57431f;
+}
+
+.hall-tab-segmented {
+  border: 1px solid #d8cab3 !important;
+  background: #f6efe1 !important;
+  border-radius: 10px !important;
+  padding: 3px !important;
+}
+
+.hall-tab-segmented .ant-segmented-item {
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+
+.hall-tab-segmented .ant-segmented-item-label {
+  font-weight: 600;
+  color: #5a4928;
+  padding: 3px 12px !important;
+}
+
+.hall-tab-segmented .ant-segmented-item-selected {
+  background: linear-gradient(90deg, #c9a75d 0%, #d7ba79 100%) !important;
+  box-shadow: 0 2px 8px rgba(95, 67, 22, 0.2);
+}
+
+.hall-tab-segmented .ant-segmented-item-selected .ant-segmented-item-label {
+  color: #1f2f46;
+}
+
+@media (max-width: 900px) {
+  .hall-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hall-tab-segmented {
+    width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .hall-tab-segmented .ant-segmented-item-label {
+    font-size: 12px;
+    padding: 3px 8px !important;
+  }
+
+  .hall-state-tag {
+    font-size: 11px;
+    gap: 4px;
+  }
+}

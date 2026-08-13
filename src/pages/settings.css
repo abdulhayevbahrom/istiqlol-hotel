@@ -1,0 +1,284 @@
+.settings-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-headline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #b8924a;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 2px 0;
+}
+
+.settings-headline i {
+  height: 1px;
+  background: #e3d4bb;
+  flex: 1;
+}
+
+.settings-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-block {
+  border: 1px solid #dfd3bf;
+  border-radius: 14px;
+  background-color: #fffdf8;
+  padding: 14px;
+}
+
+.settings-block-wide {
+  grid-column: 1 / -1;
+}
+
+.settings-block-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.settings-block-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #b0833f;
+  background: #f5ebd8;
+  border: 1px solid #e2d1b2;
+}
+
+.settings-block-head h3 {
+  margin: 0;
+  color: #4d3e21;
+  font-size: 21px;
+}
+
+.settings-panel .ant-form-item-label > label {
+  color: #6f5a34;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.settings-panel .ant-input,
+.settings-panel .ant-picker {
+  border-color: #d8cab3 !important;
+  background: #fff8ec !important;
+}
+
+.settings-panel .ant-input:focus,
+.settings-panel .ant-input-focused,
+.settings-panel .ant-picker-focused {
+  border-color: #b99958 !important;
+  box-shadow: 0 0 0 2px rgba(185, 153, 88, 0.18) !important;
+}
+
+.settings-time-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-time-item {
+  margin-bottom: 0 !important;
+}
+
+.settings-time-picker {
+  width: 100% !important;
+}
+
+.settings-full {
+  grid-column: 1 / -1;
+}
+
+.settings-upload {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-upload input[type="file"] {
+  display: none;
+}
+
+.settings-logo-dropzone {
+  border: 1px dashed #dcc9a5;
+  border-radius: 12px;
+  min-height: 210px;
+  background: #fff9ee;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.settings-logo-dropzone p {
+  margin: 0;
+  font-size: 14px;
+  color: #6e5a36;
+  font-weight: 500;
+}
+
+.settings-logo-dropzone small {
+  color: #907a53;
+}
+
+.settings-logo-empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 14px;
+  background: #f0e3ca;
+  color: #b58f4b;
+  display: grid;
+  place-items: center;
+}
+
+.settings-logo-preview {
+  width: 92px;
+  height: 92px;
+  border: 1px solid #ece2d0;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+  padding: 6px;
+}
+
+.settings-logo-preview img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.settings-upload-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-upload-btn,
+.settings-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.settings-upload-btn {
+  border: 1px solid #d8c49a;
+  background: #fff8ec;
+  color: #614b24;
+}
+
+.settings-upload-btn:hover {
+  background: #f8ecd6;
+}
+
+.settings-remove-btn {
+  border: 1px solid #e3bcbc;
+  background: #fff5f5;
+  color: #9f2525;
+}
+
+.settings-remove-btn:hover {
+  background: #ffeaea;
+}
+
+@media (max-width: 900px) {
+  .settings-layout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-time-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .settings-panel {
+    gap: 10px;
+  }
+
+  .settings-headline {
+    gap: 8px;
+    letter-spacing: 2px;
+    font-size: 11px;
+  }
+
+  .settings-layout-grid {
+    gap: 10px;
+  }
+
+  .settings-block {
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .settings-block-head {
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .settings-block-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .settings-block-head h3 {
+    font-size: 18px;
+  }
+
+  .settings-panel .ant-form-item {
+    margin-bottom: 10px;
+  }
+
+  .settings-panel .ant-form-item-label {
+    padding-bottom: 2px !important;
+  }
+
+  .settings-logo-dropzone {
+    min-height: 180px;
+    padding: 12px;
+  }
+
+  .settings-upload-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .settings-upload-btn,
+  .settings-remove-btn {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .settings-block {
+    padding: 8px;
+  }
+
+  .settings-block-head h3 {
+    font-size: 16px;
+  }
+
+  .settings-logo-preview {
+    width: 80px;
+    height: 80px;
+  }
+}
