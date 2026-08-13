@@ -5,6 +5,9 @@ const guestSections = [
   "guests-debtors",
 ];
 
+export const hasFullAccess = (role = "") =>
+  ["admin", "owner"].includes(String(role).toLowerCase().trim());
+
 export const hasSectionAccess = (sections = [], requiredSection = "") => {
   const current = Array.isArray(sections) ? sections : [];
   if (!requiredSection) return false;

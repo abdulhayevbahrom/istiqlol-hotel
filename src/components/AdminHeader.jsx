@@ -8,6 +8,7 @@ import {
   releaseSocketConnection,
 } from "../config/socketConfig";
 import smsIphoneSound from "../assets/sms_iphone.mp3";
+import { hasFullAccess } from "../utils/sectionAccess";
 
 const titles = {
   "/dashboard": "Dashboard",
@@ -30,7 +31,7 @@ function AdminHeader() {
   const token = useSelector((state) => state.auth.token);
   const audioRef = useRef(null);
   const previousPendingCountRef = useRef(null);
-  const isAdmin = String(user?.role || "").toLowerCase() === "admin";
+  const isAdmin = hasFullAccess(user?.role);
   const isGuestsRealtimePage =
     location.pathname === "/guests-active" ||
     location.pathname === "/guests-debtors";

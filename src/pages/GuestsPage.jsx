@@ -54,6 +54,7 @@ import {
   releaseSocketConnection,
 } from "../config/socketConfig";
 import PageLoader from "../components/PageLoader";
+import { hasFullAccess } from "../utils/sectionAccess";
 
 const { RangePicker } = DatePicker;
 const GUESTS_PAGE_SIZE = 20;
@@ -181,7 +182,7 @@ function GuestsPage({ tab = "active" }) {
     endDate: "",
   });
 
-  const canManageVip = String(user?.role || "").toLowerCase() === "admin";
+  const canManageVip = hasFullAccess(user?.role);
   const shouldLoadVipRequests = canManageVip && tab === "active";
   const { data: vipRequestsData, refetch: refetchVipRequests } =
     useGetVipRequestsQuery("pending", {

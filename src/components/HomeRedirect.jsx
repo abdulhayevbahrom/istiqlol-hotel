@@ -1,13 +1,13 @@
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { navItems } from "../constants/navItems";
-import { hasSectionAccess } from "../utils/sectionAccess";
+import { hasFullAccess, hasSectionAccess } from "../utils/sectionAccess";
 
 function HomeRedirect() {
   const user = useSelector((state) => state.auth.user);
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === "admin") return <Navigate to="/dashboard" replace />;
+  if (hasFullAccess(user.role)) return <Navigate to="/dashboard" replace />;
 
   const firstAllowed = navItems.find((item) =>
     hasSectionAccess(user.sections || [], item.section),

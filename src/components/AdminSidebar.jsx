@@ -21,7 +21,7 @@ import {
 import { RiHotelLine } from "react-icons/ri";
 import { useState } from "react";
 import "./sidebar.css";
-import { hasSectionAccess } from "../utils/sectionAccess";
+import { hasFullAccess, hasSectionAccess } from "../utils/sectionAccess";
 import {
   useGetSettingsQuery,
   useSendSupportMessageMutation,
@@ -98,7 +98,7 @@ function AdminSidebar() {
     }
   };
   const allowedItems =
-    user?.role === "admin"
+    hasFullAccess(user?.role)
       ? navItems
       : navItems.filter((item) =>
           hasSectionAccess(user?.sections || [], item.section),
