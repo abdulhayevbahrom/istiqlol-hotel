@@ -252,6 +252,9 @@ export const employeeApi = apiSlice.injectEndpoints({
           : "/reports-summary";
       },
     }),
+    getDailyReport: builder.query({
+      query: (date) => `/reports-daily?date=${encodeURIComponent(String(date || ""))}`,
+    }),
     createExpense: builder.mutation({
       query: (body) => ({
         url: "/expense",
@@ -334,6 +337,7 @@ export const {
   useGetExpensesQuery,
   useGetDashboardSummaryQuery,
   useGetReportsSummaryQuery,
+  useGetDailyReportQuery,
   useCreateExpenseMutation,
   useUpdateExpenseMutation,
   useDeleteExpenseMutation,

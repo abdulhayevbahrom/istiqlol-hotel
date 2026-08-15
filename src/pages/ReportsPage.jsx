@@ -1,5 +1,5 @@
 import { memo, useMemo, useRef, useState } from "react";
-import { Button, DatePicker, Modal } from "antd";
+import { Alert, Button, DatePicker, Modal, Spin } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/uz";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +17,10 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import PageLoader from "../components/PageLoader";
-import { useGetReportsSummaryQuery } from "../store/employeeApi";
+import {
+  useGetDailyReportQuery,
+  useGetReportsSummaryQuery,
+} from "../store/employeeApi";
 import "./reports.css";
 
 dayjs.locale("uz");
@@ -33,34 +36,11 @@ const formatCompactMoney = (value) => {
   return `${Math.round(amount)}`;
 };
 
-const DAILY_REPORT_DEMO = {
-  currentBalance: 23600000,
-  roomRevenue: 14750000,
-  serviceRevenue: 2380000,
-  hallRevenue: 4800000,
-  expenses: 1850000,
-  cash: 10930000,
-  card: 7850000,
-  transfer: 3150000,
-  occupiedRooms: 31,
-  availableRooms: 13,
-  arrivals: 9,
-  departures: 7,
-  guests: 46,
-  debtors: 4,
-  debt: 3250000,
-  payments: [
-    { time: "08:15", source: "Xona 204 - Dilshod Karimov", type: "Naqd", amount: 1800000 },
-    { time: "10:40", source: "Xona 107 - Malika Rasulova", type: "Karta", amount: 2250000 },
-    { time: "13:20", source: "Konferensiya zali", type: "O'tkazma", amount: 4800000 },
-    { time: "16:05", source: "Xona 305 - Akmal Saidov", type: "Karta", amount: 3200000 },
-    { time: "19:30", source: "Xona 112 - Anna Petrova", type: "Naqd", amount: 2880000 },
-  ],
-  expensesList: [
-    { title: "Oshxona mahsulotlari", amount: 780000 },
-    { title: "Kir yuvish va tozalash", amount: 420000 },
-    { title: "Texnik ta'mirlash", amount: 650000 },
-  ],
+const PAYMENT_TYPE_LABELS = {
+  naqd: "Naqd",
+  karta: "Karta",
+  click: "Click",
+  bank: "O'tkazma",
 };
 
 const REPORT_DESTINATIONS = {
@@ -346,9 +326,16 @@ function ReportsPage() {
       refetchOnReconnect: true,
     },
   );
+  const dailyDateKey = dailyReportDate.format("YYYY-MM-DD");
+  const {
+    data: dailyResponse,
+    isFetching: isDailyReportFetching,
+    error: dailyReportError,
+  } = useGetDailyReportQuery(dailyDateKey, { skip: !isDailyReportOpen });
 
   const reportData = data?.innerData || {};
   const sections = reportData?.sections || {};
+  const dailyReport = dailyResponse?.innerData;
 
   const quickHighlights = useMemo(
     () => [
@@ -557,7 +544,7 @@ function ReportsPage() {
           open={isDailyReportOpen}
           onCancel={() => setIsDailyReportOpen(false)}
           width={920}
-          title="Kunlik hisobot - demo ko'rinishi"
+          title="Kunlik hisobot"
           className="daily-report-modal"
           footer={[
             <Button key="close" onClick={() => setIsDailyReportOpen(false)}>
@@ -567,6 +554,7 @@ function ReportsPage() {
               key="print"
               type="primary"
               icon={<FiPrinter size={16} />}
+              disabled={isDailyReportFetching || !dailyReport || Boolean(dailyReportError)}
               onClick={printDailyReport}
             >
               PDF saqlash / Print
@@ -579,11 +567,17 @@ function ReportsPage() {
               allowClear={false}
               value={dailyReportDate}
               onChange={(value) => value && setDailyReportDate(value)}
+              disabledDate={(current) => current && current.startOf("day").isAfter(dayjs().startOf("day"))}
               format="DD.MM.YYYY"
             />
-            <small>Hozircha fake ma'lumotlar ishlatilmoqda</small>
+            <small>Tanlangan sana bo'yicha haqiqiy ma'lumotlar</small>
           </div>
 
+          {dailyReportError ? (
+            <Alert type="error" showIcon message="Kunlik hisobotni olishda xatolik yuz berdi" />
+          ) : null}
+
+          <Spin spinning={isDailyReportFetching} tip="Hisobot yuklanmoqda...">
           <div className="daily-report-preview-wrap">
             <div ref={dailyReportRef} className="daily-report-sheet">
               <header className="daily-report-head">
@@ -597,23 +591,21 @@ function ReportsPage() {
                 </div>
               </header>
 
-              <div className="daily-report-demo-badge">DEMO MA'LUMOTLAR</div>
-
               <section className="daily-report-summary">
-                <div><span>Bugungi tushum</span><strong>{formatMoney(DAILY_REPORT_DEMO.roomRevenue + DAILY_REPORT_DEMO.serviceRevenue + DAILY_REPORT_DEMO.hallRevenue)} so'm</strong></div>
-                <div><span>Bugungi xarajat</span><strong className="is-expense">-{formatMoney(DAILY_REPORT_DEMO.expenses)} so'm</strong></div>
-                <div className="is-primary"><span>Chop etilgan vaqtdagi balans</span><strong>{formatMoney(DAILY_REPORT_DEMO.currentBalance)} so'm</strong></div>
+                <div><span>Kunlik tushum</span><strong>{formatMoney(dailyReport?.revenue?.total)} so'm</strong></div>
+                <div><span>Kunlik xarajat</span><strong className="is-expense">-{formatMoney(dailyReport?.expenses?.total)} so'm</strong></div>
+                <div className="is-primary"><span>Kunlik balans</span><strong>{formatMoney(dailyReport?.balance)} so'm</strong></div>
               </section>
 
               <section className="daily-report-section">
                 <h2>Operatsion ko'rsatkichlar</h2>
                 <div className="daily-report-kpis">
-                  <div><strong>{DAILY_REPORT_DEMO.occupiedRooms}</strong><span>Band xonalar</span></div>
-                  <div><strong>{DAILY_REPORT_DEMO.availableRooms}</strong><span>Bo'sh xonalar</span></div>
-                  <div><strong>{DAILY_REPORT_DEMO.arrivals}</strong><span>Kelganlar</span></div>
-                  <div><strong>{DAILY_REPORT_DEMO.departures}</strong><span>Ketganlar</span></div>
-                  <div><strong>{DAILY_REPORT_DEMO.guests}</strong><span>Jami mehmon</span></div>
-                  <div><strong>{DAILY_REPORT_DEMO.debtors}</strong><span>Qarzdorlar</span></div>
+                  <div><strong>{Number(dailyReport?.operations?.occupiedRooms || 0)}</strong><span>Band xonalar</span></div>
+                  <div><strong>{Number(dailyReport?.operations?.availableRooms || 0)}</strong><span>Bo'sh xonalar</span></div>
+                  <div><strong>{Number(dailyReport?.operations?.arrivals || 0)}</strong><span>Kelganlar</span></div>
+                  <div><strong>{Number(dailyReport?.operations?.departures || 0)}</strong><span>Ketganlar</span></div>
+                  <div><strong>{Number(dailyReport?.operations?.guests || 0)}</strong><span>Jami mehmon</span></div>
+                  <div><strong>{Number(dailyReport?.debt?.debtors || 0)}</strong><span>Qarzdorlar</span></div>
                 </div>
               </section>
 
@@ -621,41 +613,41 @@ function ReportsPage() {
                 <section className="daily-report-section">
                   <h2>Daromad manbalari</h2>
                   <div className="daily-report-rows">
-                    <div><span>Xonalar</span><b>{formatMoney(DAILY_REPORT_DEMO.roomRevenue)} so'm</b></div>
-                    <div><span>Qo'shimcha xizmatlar</span><b>{formatMoney(DAILY_REPORT_DEMO.serviceRevenue)} so'm</b></div>
-                    <div><span>Zal buyurtmalari</span><b>{formatMoney(DAILY_REPORT_DEMO.hallRevenue)} so'm</b></div>
+                    <div><span>Mehmon to'lovlari</span><b>{formatMoney(dailyReport?.revenue?.room)} so'm</b></div>
+                    <div><span>Ko'rsatilgan xizmatlar</span><b>{formatMoney(dailyReport?.revenue?.services)} so'm</b></div>
+                    <div><span>Zal buyurtmalari</span><b>{formatMoney(dailyReport?.revenue?.hall)} so'm</b></div>
                   </div>
                 </section>
                 <section className="daily-report-section">
                   <h2>To'lov turlari</h2>
                   <div className="daily-report-rows">
-                    <div><span>Naqd</span><b>{formatMoney(DAILY_REPORT_DEMO.cash)} so'm</b></div>
-                    <div><span>Bank kartasi</span><b>{formatMoney(DAILY_REPORT_DEMO.card)} so'm</b></div>
-                    <div><span>O'tkazma</span><b>{formatMoney(DAILY_REPORT_DEMO.transfer)} so'm</b></div>
+                    <div><span>Naqd</span><b>{formatMoney(dailyReport?.paymentTypes?.cash)} so'm</b></div>
+                    <div><span>Bank kartasi / Click</span><b>{formatMoney(dailyReport?.paymentTypes?.card)} so'm</b></div>
+                    <div><span>O'tkazma</span><b>{formatMoney(dailyReport?.paymentTypes?.transfer)} so'm</b></div>
                   </div>
                 </section>
               </div>
 
               <section className="daily-report-section">
-                <div className="daily-report-section-head"><h2>Asosiy to'lovlar</h2><span>{DAILY_REPORT_DEMO.payments.length} ta operatsiya</span></div>
+                <div className="daily-report-section-head"><h2>Asosiy to'lovlar</h2><span>{dailyReport?.payments?.length || 0} ta operatsiya</span></div>
                 <table className="daily-report-table">
                   <thead><tr><th>Vaqt</th><th>Manba / mijoz</th><th>To'lov turi</th><th>Summa</th></tr></thead>
-                  <tbody>{DAILY_REPORT_DEMO.payments.map((payment) => (
-                    <tr key={`${payment.time}-${payment.source}`}><td>{payment.time}</td><td>{payment.source}</td><td>{payment.type}</td><td>{formatMoney(payment.amount)} so'm</td></tr>
+                  <tbody>{(dailyReport?.payments || []).map((payment, index) => (
+                    <tr key={`${payment.time}-${payment.source}-${index}`}><td>{payment.time}</td><td>{payment.source}</td><td>{PAYMENT_TYPE_LABELS[payment.type] || payment.type}</td><td>{formatMoney(payment.amount)} so'm</td></tr>
                   ))}</tbody>
                 </table>
               </section>
 
               <section className="daily-report-section daily-report-expenses">
-                <div className="daily-report-section-head"><h2>Xarajatlar</h2><b>Jami: {formatMoney(DAILY_REPORT_DEMO.expenses)} so'm</b></div>
-                <div className="daily-report-expense-grid">{DAILY_REPORT_DEMO.expensesList.map((expense) => (
-                  <div key={expense.title}><span>{expense.title}</span><b>{formatMoney(expense.amount)} so'm</b></div>
+                <div className="daily-report-section-head"><h2>Xarajatlar</h2><b>Jami: {formatMoney(dailyReport?.expenses?.total)} so'm</b></div>
+                <div className="daily-report-expense-grid">{(dailyReport?.expenses?.items || []).map((expense, index) => (
+                  <div key={`${expense.title}-${index}`}><span>{expense.title}</span><b>{formatMoney(expense.amount)} so'm</b></div>
                 ))}</div>
               </section>
 
               <section className="daily-report-debt">
-                <div><span>Undirilmagan qarzdorlik</span><strong>{formatMoney(DAILY_REPORT_DEMO.debt)} so'm</strong></div>
-                <p>{DAILY_REPORT_DEMO.debtors} nafar mehmon bo'yicha nazorat talab qilinadi.</p>
+                <div><span>Undirilmagan qarzdorlik</span><strong>{formatMoney(dailyReport?.debt?.total)} so'm</strong></div>
+                <p>{Number(dailyReport?.debt?.debtors || 0)} nafar mehmon bo'yicha nazorat talab qilinadi.</p>
               </section>
 
               <footer className="daily-report-footer">
@@ -664,6 +656,7 @@ function ReportsPage() {
               </footer>
             </div>
           </div>
+          </Spin>
         </Modal>
       </div>
     </div>
