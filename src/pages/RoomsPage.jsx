@@ -14,6 +14,7 @@ import {
   useCreateRoomMutation,
   useDeleteRoomMutation,
   useGetRoomsQuery,
+  useGetSettingsQuery,
   useUpdateRoomMutation,
 } from "../store/employeeApi";
 import {
@@ -22,13 +23,15 @@ import {
 } from "../utils/numberFormat";
 import PageLoader from "../components/PageLoader";
 
-const roomCategoryOptions = [
-  { label: "Standart", value: "standart" },
-  { label: "Polulyuks", value: "polulyuks" },
-  { label: "Lyuks", value: "lyuks" },
-  { label: "Apartament", value: "apartament" },
-  { label: "1 Kishilik", value: "bir_kishilik" },
+const DEFAULT_ROOM_CATEGORIES = [
+  "standart",
+  "polulyuks",
+  "lyuks",
+  "apartament",
+  "bir_kishilik",
 ];
+const formatCategoryLabel = (value) =>
+  value === "bir_kishilik" ? "1 Kishilik" : String(value || "");
 
 const roomKorpusOptions = [
   { label: "A korpus", value: "A" },
@@ -53,6 +56,25 @@ const parseLegacyRoomNumber = (value) => {
   return { roomNumber: match[1], korpus: match[2] };
 };
 
+const compareRoomNumbers = (left, right) => {
+  const korpusOrder = { A: 0, B: 1 };
+  const leftKorpus = String(left?.korpus || "A").trim().toUpperCase();
+  const rightKorpus = String(right?.korpus || "A").trim().toUpperCase();
+  const korpusDiff =
+    (korpusOrder[leftKorpus] ?? Number.POSITIVE_INFINITY) -
+    (korpusOrder[rightKorpus] ?? Number.POSITIVE_INFINITY);
+  if (korpusDiff !== 0) return korpusDiff;
+
+  const leftText = String(left?.roomNumber || "").trim().toUpperCase();
+  const rightText = String(right?.roomNumber || "").trim().toUpperCase();
+  const leftMatch = leftText.match(/^(\d+)/);
+  const rightMatch = rightText.match(/^(\d+)/);
+  const leftNumber = leftMatch ? Number(leftMatch[1]) : Number.POSITIVE_INFINITY;
+  const rightNumber = rightMatch ? Number(rightMatch[1]) : Number.POSITIVE_INFINITY;
+  if (leftNumber !== rightNumber) return leftNumber - rightNumber;
+  return leftText.localeCompare(rightText, "uz", { numeric: true });
+};
+
 const initialForm = {
   roomNumber: "",
   korpus: "A",
@@ -67,6 +89,7 @@ const formatMoney = (value) => Number(value || 0).toLocaleString();
 function RoomsPage() {
   const [form] = Form.useForm();
   const { data, isLoading } = useGetRoomsQuery();
+  const { data: settingsData } = useGetSettingsQuery();
   const [createRoom, { isLoading: isCreating }] = useCreateRoomMutation();
   const [updateRoom, { isLoading: isUpdating }] = useUpdateRoomMutation();
   const [deleteRoom, { isLoading: isDeleting }] = useDeleteRoomMutation();
@@ -91,6 +114,16 @@ function RoomsPage() {
   }, []);
 
   const rooms = useMemo(() => data?.innerData || [], [data]);
+  const roomCategoryOptions = useMemo(() => {
+    const categories =
+      settingsData?.innerData?.roomCategories?.length > 0
+        ? settingsData.innerData.roomCategories
+        : DEFAULT_ROOM_CATEGORIES;
+    return categories.map((value) => ({
+      label: formatCategoryLabel(value),
+      value,
+    }));
+  }, [settingsData]);
   const floorOptions = useMemo(() => {
     const floors = [
       ...new Set(
@@ -102,23 +135,25 @@ function RoomsPage() {
 
   const filteredRooms = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return rooms.filter((room) => {
-      const roomNumber = String(room.roomNumber || "").toLowerCase();
-      const korpus = String(room.korpus || "").toLowerCase();
-      const category = String(room.category || "").toLowerCase();
-      const status = String(room.status || "").toLowerCase();
-      const byText =
-        !q ||
-        roomNumber.includes(q) ||
-        korpus.includes(q) ||
-        category.includes(q) ||
-        status.includes(q);
-      const byFloor = floorFilter === undefined || room.floor === floorFilter;
-      const byKorpus = !korpusFilter || room.korpus === korpusFilter;
-      const byCategory = !categoryFilter || room.category === categoryFilter;
-      const byStatus = !statusFilter || room.status === statusFilter;
-      return byText && byFloor && byKorpus && byCategory && byStatus;
-    });
+    return rooms
+      .filter((room) => {
+        const roomNumber = String(room.roomNumber || "").toLowerCase();
+        const korpus = String(room.korpus || "").toLowerCase();
+        const category = String(room.category || "").toLowerCase();
+        const status = String(room.status || "").toLowerCase();
+        const byText =
+          !q ||
+          roomNumber.includes(q) ||
+          korpus.includes(q) ||
+          category.includes(q) ||
+          status.includes(q);
+        const byFloor = floorFilter === undefined || room.floor === floorFilter;
+        const byKorpus = !korpusFilter || room.korpus === korpusFilter;
+        const byCategory = !categoryFilter || room.category === categoryFilter;
+        const byStatus = !statusFilter || room.status === statusFilter;
+        return byText && byFloor && byKorpus && byCategory && byStatus;
+      })
+      .sort(compareRoomNumbers);
   }, [rooms, query, floorFilter, korpusFilter, categoryFilter, statusFilter]);
 
   const openCreateModal = () => {

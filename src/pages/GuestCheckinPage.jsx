@@ -15,16 +15,19 @@ import {
   useCreateGuestMutation,
   useCreateGuestsBulkMutation,
   useGetRoomsQuery,
+  useGetSettingsQuery,
   useLazyGetGuestByPassportQuery,
 } from "../store/employeeApi";
 
-const roomTypeOptions = [
-  { label: "Standart", value: "standart" },
-  { label: "Polulyuks", value: "polulyuks" },
-  { label: "Lyuks", value: "lyuks" },
-  { label: "Apartament", value: "apartament" },
-  { label: "1 Kishilik", value: "bir_kishilik" },
+const DEFAULT_ROOM_CATEGORIES = [
+  "standart",
+  "polulyuks",
+  "lyuks",
+  "apartament",
+  "bir_kishilik",
 ];
+const formatCategoryLabel = (value) =>
+  value === "bir_kishilik" ? "1 Kishilik" : String(value || "");
 
 const initialValues = {
   mode: "checkin",
@@ -40,6 +43,7 @@ const initialValues = {
   passport: "",
   birthDate: "",
   phone: "",
+  email: "",
   note: "",
   additionalGuests: [],
   checkInAt: dayjs(),
@@ -109,6 +113,7 @@ const blockNonNumericKeys = (event) => {
 function GuestCheckinPage() {
   const [form] = Form.useForm();
   const { data: roomsData } = useGetRoomsQuery();
+  const { data: settingsData } = useGetSettingsQuery();
   const [createGuest, { isLoading }] = useCreateGuestMutation();
   const [createGuestsBulk, { isLoading: isBulkLoading }] =
     useCreateGuestsBulkMutation();
@@ -123,6 +128,16 @@ function GuestCheckinPage() {
   const isBookingMode = mode === "booking";
   const [isBlacklistedPassport, setIsBlacklistedPassport] = useState(false);
   const rooms = useMemo(() => roomsData?.innerData || [], [roomsData]);
+  const roomTypeOptions = useMemo(() => {
+    const categories =
+      settingsData?.innerData?.roomCategories?.length > 0
+        ? settingsData.innerData.roomCategories
+        : DEFAULT_ROOM_CATEGORIES;
+    return categories.map((value) => ({
+      label: formatCategoryLabel(value),
+      value,
+    }));
+  }, [settingsData]);
   const selectedRoom = useMemo(
     () => rooms.find((room) => room._id === selectedRoomId),
     [rooms, selectedRoomId],
@@ -221,6 +236,7 @@ function GuestCheckinPage() {
       passport: String(values.passport || "").trim(),
       birthDate: birthDateIso,
       phone: String(values.phone || "").trim(),
+      email: String(values.email || "").trim(),
       note: String(values.note || "").trim(),
       vip: isBookingMode ? false : Boolean(values.vip),
     };
@@ -250,6 +266,7 @@ function GuestCheckinPage() {
             passport: String(guest?.passport || "").trim(),
             birthDate: extraBirthDateIso,
             phone: String(guest?.phone || "").trim(),
+            email: String(guest?.email || "").trim(),
             note: String(guest?.note || "").trim(),
             vip: false,
           });
@@ -575,6 +592,9 @@ function GuestCheckinPage() {
                 }
               />
             </Form.Item>
+            <Form.Item name="email" label="Email (ixtiyoriy)">
+              <Input type="email" placeholder="name@example.com" />
+            </Form.Item>
           </div>
           <Form.Item name="note" label="Izoh">
             <Input.TextArea
@@ -657,6 +677,13 @@ function GuestCheckinPage() {
                             );
                           }}
                         />
+                      </Form.Item>
+                      <Form.Item
+                        {...field}
+                        name={[field.name, "email"]}
+                        label="Email (ixtiyoriy)"
+                      >
+                        <Input type="email" placeholder="name@example.com" />
                       </Form.Item>
                     </div>
                     <Form.Item

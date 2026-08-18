@@ -166,6 +166,54 @@
   gap: 8px;
 }
 
+.settings-room-categories-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.settings-room-categories-table-wrap {
+  overflow: auto;
+  border: 1px solid #e6d9c4;
+  border-radius: 12px;
+  background: #fffaf1;
+}
+
+.settings-room-categories-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.settings-room-categories-table th,
+.settings-room-categories-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #eee3d0;
+  text-align: left;
+}
+
+.settings-room-categories-table th {
+  background: #f7eedf;
+  color: #6f5a34;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 11px;
+}
+
+.settings-room-categories-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.settings-room-category-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-room-category-actions .icon-btn {
+  width: 34px;
+  height: 34px;
+}
+
 .settings-upload-btn,
 .settings-remove-btn {
   display: inline-flex;

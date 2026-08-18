@@ -706,6 +706,13 @@ a {
   margin-bottom: 12px;
 }
 
+.guests-bulk-count {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #8a7b63;
+  font-weight: 600;
+}
+
 .guests-more-btn.ant-btn {
   width: 44px;
   min-width: 44px;
@@ -1010,7 +1017,11 @@ a {
 .guest-edit-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
+  gap: 6px 14px;
+}
+
+.guest-edit-form-grid .ant-form-item {
+  margin-bottom: 8px;
 }
 
 .guest-edit-note-full {
@@ -1019,6 +1030,17 @@ a {
 
 .guest-edit-actions-full {
   grid-column: 1 / -1;
+}
+
+.guest-edit-flex-row {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.guest-edit-flex-row .ant-form-item {
+  margin-bottom: 0;
 }
 
 .checkin-modern {
@@ -1550,6 +1572,13 @@ a {
   }
 }
 
+.guest-name-cell {
+    display: flex;
+  flex-direction: column;
+    gap: 2px;
+  }
+
+
 @media (max-width: 700px) {
   .checkin-modern-card {
     padding: 10px;
@@ -1801,6 +1830,40 @@ a {
 
   .employee-modal-theme .history-payments-table .table-empty::before {
     content: none !important;
+  }
+
+  .guest-name-cell {
+    display: grid;
+    gap: 2px;
+  }
+
+  .guest-name-cell strong {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  .guest-name-cell small {
+    font-size: 11px;
+    color: #8a7b63;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+
+  .guest-history-title {
+    display: grid;
+    gap: 2px;
+  }
+
+  .guest-history-title strong {
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .guest-history-title small {
+    font-size: 11px;
+    color: #8a7b63;
+    line-height: 1.2;
+    word-break: break-word;
   }
 
   .guests-page .guests-page-card {

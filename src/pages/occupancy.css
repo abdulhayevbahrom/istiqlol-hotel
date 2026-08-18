@@ -2,6 +2,7 @@
 .occupancy-toolbar h2 { margin:0; }
 .occupancy-toolbar p { margin:4px 0 0; color:#6b7280; font-size:13px; }
 .occupancy-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.occupancy-korpus-select { min-width:150px; }
 .occupancy-floor-select { min-width:160px; }
 .occupancy-legend { display:flex; gap:16px; flex-wrap:wrap; color:#5b6472; font-size:13px; margin-bottom:16px; }
 .occupancy-legend span { display:flex; align-items:center; gap:6px; }
@@ -20,3 +21,4 @@
 .occupancy-booking { z-index:2; margin:0 3px; border:0; border-radius:5px; padding:0 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; color:#fff; font-size:11px; font-weight:600; cursor:pointer; min-width:0; }.occupancy-booking:hover { filter:brightness(.92); }.occupancy-booking-active { background:#2f7d61; }.occupancy-booking-booked { background:#3c74b9; }
 .occupancy-empty { padding:28px; color:#6b7280; text-align:center; }.occupancy-detail { display:grid; gap:11px; }.occupancy-detail div { display:flex; justify-content:space-between; gap:18px; border-bottom:1px solid #eee7dc; padding-bottom:8px; }.occupancy-detail span { color:#737b86; }
 @media (max-width:700px) { .occupancy-toolbar { align-items:flex-start; flex-direction:column; }.occupancy-actions { justify-content:flex-start; }.occupancy-actions .ant-btn { padding-inline:8px; }.occupancy-floor-select { min-width:145px; } }
+@media (max-width:700px) { .occupancy-korpus-select { min-width:145px; } }

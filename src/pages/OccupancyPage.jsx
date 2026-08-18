@@ -53,6 +53,7 @@ const formatRoomLabel = (room) => {
 
 function OccupancyPage() {
   const [viewStart, setViewStart] = useState(() => startOfDay(new Date()));
+  const [korpus, setKorpus] = useState();
   const [floor, setFloor] = useState();
   const [selectedGuest, setSelectedGuest] = useState(null);
   const viewEnd = useMemo(() => addDays(viewStart, DAY_COUNT), [viewStart]);
@@ -77,18 +78,29 @@ function OccupancyPage() {
         .map((value) => ({ label: `${value}-qavat`, value })),
     [rooms],
   );
+  const korpusOptions = useMemo(
+    () =>
+      [...new Set(rooms.map((room) => String(room.korpus || "").trim()).filter(Boolean))]
+        .sort()
+        .map((value) => ({ label: `${value} korpus`, value })),
+    [rooms],
+  );
   const visibleRooms = useMemo(
     () =>
       rooms
         .filter((room) => floor === undefined || room.floor === floor)
+        .filter((room) => !korpus || room.korpus === korpus)
         .sort(
           (a, b) =>
+            String(a.korpus || "").localeCompare(String(b.korpus || ""), undefined, {
+              numeric: true,
+            }) ||
             Number(a.floor || 0) - Number(b.floor || 0) ||
             String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, {
               numeric: true,
             }),
         ),
-    [rooms, floor],
+    [rooms, floor, korpus],
   );
 
   const entriesByRoom = useMemo(() => {
@@ -140,6 +152,14 @@ function OccupancyPage() {
           <div className="occupancy-actions">
             <Select
               allowClear
+              className="occupancy-korpus-select"
+              placeholder="Barcha korpuslar"
+              value={korpus}
+              options={korpusOptions}
+              onChange={setKorpus}
+            />
+            <Select
+              allowClear
               className="occupancy-floor-select"
               placeholder="Barcha qavatlar"
               value={floor}
@@ -183,7 +203,7 @@ function OccupancyPage() {
               const isRepair = room.status === "remont";
               return (
                 <div className="occupancy-room-row" key={room._id}>
-                  <div className="occupancy-room-label">
+          <div className="occupancy-room-label">
                     <strong>{room.roomNumber}</strong>
                     <span>
                       {room.korpus ? `${room.korpus} korpus · ` : ""}
