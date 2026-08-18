@@ -30,7 +30,9 @@ import {
   FiPrinter,
   FiTrash2,
   FiXCircle,
+  FiRefreshCw,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import {
   useAddGuestServiceMutation,
   useAddGuestPaymentMutation,
@@ -166,6 +168,7 @@ const VipRequestsPanel = memo(function VipRequestsPanel({
 });
 
 function GuestsPage({ tab = "active" }) {
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
   const { data: settingsData } = useGetSettingsQuery();
@@ -673,6 +676,26 @@ function GuestsPage({ tab = "active" }) {
       printHotelReceipt();
     }, 120);
   };
+
+  const onRecheckinGuest = (guest) => {
+    navigate("/guest-checkin", {
+      state: {
+        recheckinGuest: {
+          firstname: guest.firstname || "",
+          lastname: guest.lastname || "",
+          passport: guest.passport || "",
+          phone: guest.phone || "",
+          email: guest.email || "",
+          birthDate: guest.birthDate || "",
+          guestType: guest.guestType || "uzb",
+          roomId: guest.room?._id || guest.room || "",
+          roomType: guest.room?.category || "standart",
+          dailyRate: Number(guest.dailyRate || 0),
+          note: guest.note || "",
+        },
+      },
+    });
+  };
   const onExportDebtorsExcel = useCallback(async () => {
     try {
       const limit = 100;
@@ -1170,6 +1193,15 @@ function GuestsPage({ tab = "active" }) {
                           >
                             <FiClock size={16} />
                           </button>
+                          {tab === "history" ? (
+                            <button
+                              className="icon-btn"
+                              title="Qayta qabul qilish"
+                              onClick={() => onRecheckinGuest(guest)}
+                            >
+                              <FiRefreshCw size={16} />
+                            </button>
+                          ) : null}
                           {tab === "history" ? (
                             <button
                               className="icon-btn"

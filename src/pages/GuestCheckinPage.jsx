@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
+import { useLocation } from "react-router-dom";
 import {
   useCreateGuestMutation,
   useCreateGuestsBulkMutation,
@@ -112,6 +113,7 @@ const blockNonNumericKeys = (event) => {
 
 function GuestCheckinPage() {
   const [form] = Form.useForm();
+  const location = useLocation();
   const { data: roomsData } = useGetRoomsQuery();
   const { data: settingsData } = useGetSettingsQuery();
   const [createGuest, { isLoading }] = useCreateGuestMutation();
@@ -207,6 +209,42 @@ function GuestCheckinPage() {
         value: room._id,
       }));
   }, [rooms, roomType]);
+
+  useEffect(() => {
+    const pref = location.state?.recheckinGuest;
+    if (!pref) return;
+
+    const nextRoomType = pref.roomType || "standart";
+    const preferredRoom = rooms.find((room) => room._id === pref.roomId);
+    const preferredRoomIsFree =
+      preferredRoom &&
+      preferredRoom.status !== "remont" &&
+      Number(preferredRoom.capacity || 0) -
+        Number(preferredRoom.activeGuestsCount || 0) >
+        0;
+    setRoomType(nextRoomType);
+    setGuestType(pref.guestType || "uzb");
+    form.setFieldsValue({
+      mode: "checkin",
+      roomType: nextRoomType,
+      room: preferredRoomIsFree ? pref.roomId : undefined,
+      dailyRate: Number(pref.dailyRate || 0),
+      stayDays: 1,
+      firstname: pref.firstname || "",
+      lastname: pref.lastname || "",
+      passport: pref.passport || "",
+      birthDate: pref.birthDate
+        ? formatIsoToUzDate(pref.birthDate)
+        : "",
+      phone: pref.phone || "",
+      email: pref.email || "",
+      note: pref.note || "",
+      guestType: pref.guestType || "uzb",
+      vip: false,
+      additionalGuests: [],
+      checkInAt: dayjs(),
+    });
+  }, [form, location.state, rooms]);
 
   const onSubmit = async (values) => {
     const birthDateIso = parseUzDateToIso(values.birthDate);

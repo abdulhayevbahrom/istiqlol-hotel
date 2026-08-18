@@ -7,6 +7,8 @@ import "./occupancy.css";
 
 const DAY_COUNT = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const CELL_WIDTH = 52;
+const ROW_HEIGHT = 24;
 
 const startOfDay = (value) => {
   const date = new Date(value);
@@ -23,6 +25,8 @@ const addDays = (date, amount) => {
   value.setDate(value.getDate() + amount);
   return value;
 };
+
+const toDayFraction = (value, anchor) => (new Date(value).getTime() - anchor.getTime()) / DAY_MS;
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -111,15 +115,11 @@ function OccupancyPage() {
       const startsAt = guest.bookedForAt || guest.checkInAt;
       const endsAt = guest.checkoutDueAt;
       if (!startsAt || !endsAt) return;
-      const start = Math.max(
-        0,
-        Math.floor((startOfDay(startsAt) - viewStart) / DAY_MS),
-      );
-      const end = Math.min(
-        DAY_COUNT,
-        Math.ceil((startOfDay(endsAt) - viewStart) / DAY_MS),
-      );
-      if (end <= start) return;
+      const rawStart = toDayFraction(startOfDay(startsAt), viewStart) + 0.5;
+      const rawEnd = toDayFraction(startOfDay(endsAt), viewStart) + 0.5;
+      const start = Math.max(0, rawStart);
+      const end = Math.min(DAY_COUNT, rawEnd);
+      if (end <= 0 || end <= start) return;
       const entry = { ...guest, start, end, lane: 1 };
       grouped.set(roomId, [...(grouped.get(roomId) || []), entry]);
     });
@@ -147,7 +147,7 @@ function OccupancyPage() {
         <div className="occupancy-toolbar">
           <div>
             <h2>Shaxmatka</h2>
-            <p>Xonalarning kunlar bo‘yicha bandligi va bo‘shligi.</p>
+            {/* <p>Xonalarning kunlar bo‘yicha bandligi va bo‘shligi.</p> */}
           </div>
           <div className="occupancy-actions">
             <Select
@@ -203,7 +203,7 @@ function OccupancyPage() {
               const isRepair = room.status === "remont";
               return (
                 <div className="occupancy-room-row" key={room._id}>
-          <div className="occupancy-room-label">
+                  <div className="occupancy-room-label">
                     <strong>{room.roomNumber}</strong>
                     <span>
                       {room.korpus ? `${room.korpus} korpus · ` : ""}
@@ -218,12 +218,18 @@ function OccupancyPage() {
                     {isRepair ? <div className="repair-label">Remont</div> : null}
                     {entries.map((entry) => {
                       const name = `${entry.firstname || ""} ${entry.lastname || ""}`.trim() || "Mehmon";
+                      const left = entry.start * CELL_WIDTH;
+                      const width = Math.max((entry.end - entry.start) * CELL_WIDTH, 10);
                       return (
                         <button
                           type="button"
                           key={entry._id}
                           className={`occupancy-booking occupancy-booking-${entry.status}`}
-                          style={{ gridColumn: `${entry.start + 1} / ${entry.end + 1}`, gridRow: entry.lane }}
+                          style={{
+                            left: `${left}px`,
+                            width: `${width}px`,
+                            top: `${(entry.lane - 1) * ROW_HEIGHT}px`,
+                          }}
                           title={`${name}: ${formatDate(entry.bookedForAt || entry.checkInAt)} — ${formatDate(entry.checkoutDueAt)}`}
                           onClick={() => setSelectedGuest(entry)}
                         >
