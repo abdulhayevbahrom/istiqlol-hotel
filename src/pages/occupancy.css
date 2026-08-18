@@ -58,6 +58,21 @@
 .occupancy-dot-repair {
   background: #8a8f98;
 }
+.occupancy-page.is-historical .occupancy-booking-active {
+  background: #c53030;
+}
+.occupancy-page.is-historical .occupancy-booking-booked {
+  background: #e53e3e;
+}
+.occupancy-page.is-historical .occupancy-booking.is-current-stay {
+  background: #2f7d61;
+}
+.occupancy-page.is-historical .occupancy-booking.is-past-stay {
+  background: #e53e3e;
+}
+.occupancy-page.is-historical .occupancy-booking.is-today-checkout {
+  background: #e53e3e;
+}
 .occupancy-scroll {
   overflow: auto;
   border: 1px solid var(--hotel-border);
@@ -198,6 +213,13 @@
 }
 .occupancy-booking-booked {
   background: #3c74b9;
+}
+.occupancy-booking-checked_out {
+  background: #e53e3e;
+}
+.occupancy-page.is-historical .occupancy-booking {
+  color: #fff5f5;
+  box-shadow: 0 1px 2px rgba(197, 48, 48, 0.18);
 }
 .occupancy-empty {
   padding: 28px;

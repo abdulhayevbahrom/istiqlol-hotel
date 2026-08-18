@@ -60,6 +60,8 @@ function OccupancyPage() {
   const [korpus, setKorpus] = useState();
   const [floor, setFloor] = useState();
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const todayStart = useMemo(() => startOfDay(new Date()), []);
+  const isHistoricalView = viewStart < startOfDay(new Date());
   const viewEnd = useMemo(() => addDays(viewStart, DAY_COUNT), [viewStart]);
   const days = useMemo(
     () => Array.from({ length: DAY_COUNT }, (_, index) => addDays(viewStart, index)),
@@ -113,14 +115,22 @@ function OccupancyPage() {
       const roomId = guest?.room?._id || guest?.room;
       if (!roomId) return;
       const startsAt = guest.bookedForAt || guest.checkInAt;
-      const endsAt = guest.checkoutDueAt;
+      const endsAt = guest.checkOutAt || guest.checkoutDueAt;
       if (!startsAt || !endsAt) return;
       const rawStart = toDayFraction(startOfDay(startsAt), viewStart) + 0.5;
       const rawEnd = toDayFraction(startOfDay(endsAt), viewStart) + 0.5;
       const start = Math.max(0, rawStart);
       const end = Math.min(DAY_COUNT, rawEnd);
       if (end <= 0 || end <= start) return;
-      const entry = { ...guest, start, end, lane: 1 };
+      const checkoutDay = startOfDay(guest.checkOutAt || guest.checkoutDueAt);
+      const entry = {
+        ...guest,
+        start,
+        end,
+        lane: 1,
+        isPastStay: Boolean(checkoutDay < todayStart),
+        isTodayCheckout: Boolean(checkoutDay.getTime() === todayStart.getTime()),
+      };
       grouped.set(roomId, [...(grouped.get(roomId) || []), entry]);
     });
 
@@ -142,7 +152,7 @@ function OccupancyPage() {
   if (roomsLoading || occupancyLoading) return <PageLoader />;
 
   return (
-    <div className="employee-page occupancy-page">
+    <div className={`employee-page occupancy-page ${isHistoricalView ? "is-historical" : ""}`}>
       <div className="page-card">
         <div className="occupancy-toolbar">
           <div>
@@ -224,13 +234,21 @@ function OccupancyPage() {
                         <button
                           type="button"
                           key={entry._id}
-                          className={`occupancy-booking occupancy-booking-${entry.status}`}
+                          className={[
+                            "occupancy-booking",
+                            `occupancy-booking-${entry.status}`,
+                            entry.isPastStay
+                              ? "is-past-stay"
+                              : entry.isTodayCheckout
+                                ? "is-today-checkout"
+                                : "is-current-stay",
+                          ].join(" ")}
                           style={{
                             left: `${left}px`,
                             width: `${width}px`,
                             top: `${(entry.lane - 1) * ROW_HEIGHT}px`,
                           }}
-                          title={`${name}: ${formatDate(entry.bookedForAt || entry.checkInAt)} — ${formatDate(entry.checkoutDueAt)}`}
+                          title={`${name}: ${formatDate(entry.bookedForAt || entry.checkInAt)} — ${formatDate(entry.checkOutAt || entry.checkoutDueAt)}`}
                           onClick={() => setSelectedGuest(entry)}
                         >
                           <span>{name}</span>
@@ -253,7 +271,7 @@ function OccupancyPage() {
             <div><span>Mijoz</span><strong>{selectedGuest.firstname} {selectedGuest.lastname}</strong></div>
             <div><span>Xona</span><strong>{formatRoomLabel(selectedGuest.room)}</strong></div>
             <div><span>Kelish</span><strong>{formatDate(selectedGuest.bookedForAt || selectedGuest.checkInAt)}</strong></div>
-            <div><span>Chiqish</span><strong>{formatDate(selectedGuest.checkoutDueAt)}</strong></div>
+            <div><span>Chiqish</span><strong>{formatDate(selectedGuest.checkOutAt || selectedGuest.checkoutDueAt)}</strong></div>
             <div><span>Holati</span><strong>{selectedGuest.status === "booked" ? "Bron qilingan" : "Hozir yashayapti"}</strong></div>
           </div>
         ) : null}
