@@ -185,18 +185,18 @@ function OccupancyPage() {
           <span><i className="occupancy-dot occupancy-dot-repair" /> Remont</span>
         </div>
 
-        <div className={`occupancy-scroll ${isFetching ? "is-refreshing" : ""}`}>
-          <div className="occupancy-grid" style={{ "--day-count": DAY_COUNT }}>
-            <div className="occupancy-header">
-              <div className="occupancy-room-head">Xona</div>
-              {days.map((day) => (
-                <div className={`occupancy-day-head ${dateKey(day) === dateKey(new Date()) ? "is-today" : ""}`} key={dateKey(day)}>
-                  <strong>{day.getDate()}</strong>
-                  <span>{day.toLocaleDateString("uz-UZ", { weekday: "short" })}</span>
-                </div>
-              ))}
-            </div>
+        <div className="occupancy-grid" style={{ "--day-count": DAY_COUNT }}>
+          <div className="occupancy-header">
+            <div className="occupancy-room-head">Xona</div>
+            {days.map((day) => (
+              <div className={`occupancy-day-head ${dateKey(day) === dateKey(new Date()) ? "is-today" : ""}`} key={dateKey(day)}>
+                <strong>{day.getDate()}</strong>
+                <span>{day.toLocaleDateString("uz-UZ", { weekday: "short" })}</span>
+              </div>
+            ))}
+          </div>
 
+          <div className={`occupancy-scroll ${isFetching ? "is-refreshing" : ""}`}>
             {visibleRooms.map((room) => {
               const entries = entriesByRoom.get(room._id) || [];
               const lanes = Math.max(1, ...entries.map((entry) => entry.lane));

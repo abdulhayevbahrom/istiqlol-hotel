@@ -63,6 +63,7 @@
   border: 1px solid var(--hotel-border);
   border-radius: 10px;
   transition: opacity 0.2s;
+  max-height: calc(100vh - 280px);
 }
 .occupancy-scroll.is-refreshing {
   opacity: 0.68;
@@ -78,11 +79,10 @@
   grid-template-columns: 220px repeat(var(--day-count), 52px);
 }
 .occupancy-header {
-  position: sticky;
-  top: 0;
-  z-index: 4;
   background: #f8f4eb;
   border-bottom: 1px solid var(--hotel-border);
+  position: relative;
+  z-index: 2;
 }
 .occupancy-room-head {
   position: sticky;
