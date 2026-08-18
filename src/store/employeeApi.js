@@ -139,6 +139,14 @@ export const employeeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Guest", "Room"],
     }),
+    checkoutGuestsBulk: builder.mutation({
+      query: (body) => ({
+        url: "/guests/checkout-bulk",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Guest", "Room"],
+    }),
     deleteGuest: builder.mutation({
       query: (id) => ({
         url: `/guest/${id}`,
@@ -322,6 +330,7 @@ export const {
   useUpdateGuestMutation,
   useAddGuestPaymentMutation,
   useCheckoutGuestMutation,
+  useCheckoutGuestsBulkMutation,
   useDeleteGuestMutation,
   useAddGuestServiceMutation,
   useGetServicesQuery,

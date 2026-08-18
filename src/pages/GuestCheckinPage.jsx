@@ -42,6 +42,7 @@ const initialValues = {
   phone: "",
   note: "",
   additionalGuests: [],
+  checkInAt: dayjs(),
 };
 
 const normalizeUzDateInput = (value) => {
@@ -209,6 +210,10 @@ function GuestCheckinPage() {
       room: values.room,
       dailyRate: Number(values.dailyRate || 0),
       stayDays: Number(values.stayDays || 1),
+      checkInAt:
+        !isBookingMode && values.checkInAt
+          ? values.checkInAt.toISOString()
+          : undefined,
     };
     const firstGuest = {
       firstname: String(values.firstname || "").trim(),
@@ -439,11 +444,11 @@ function GuestCheckinPage() {
             </Form.Item>
 
             <div className="checkin-room-extra-block">
-              <Form.Item
-                name="stayDays"
-                label="Necha kun qoladi"
-                rules={[{ required: true, message: "Kunlar soni majburiy" }]}
-              >
+            <Form.Item
+              name="stayDays"
+              label="Necha kun qoladi"
+              rules={[{ required: true, message: "Kunlar soni majburiy" }]}
+            >
                 <InputNumber
                   min={1}
                   style={{ width: "100%" }}
@@ -472,14 +477,34 @@ function GuestCheckinPage() {
                     />
                   </Form.Item>
                 ) : (
-                  <Form.Item
-                    name="vip"
-                    label="VIP holati"
-                    valuePropName="checked"
-                    className="checkin-vip-item"
-                  >
-                    <Checkbox>VIP mehmon (to'lov olinmaydi)</Checkbox>
-                  </Form.Item>
+                  <>
+                    <Form.Item
+                      name="checkInAt"
+                      label="Kelgan sana vaqti"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Kelgan sana vaqti majburiy",
+                        },
+                      ]}
+                    >
+                      <DatePicker
+                        style={{ width: "100%" }}
+                        showTime={{ format: "HH:mm" }}
+                        format="DD.MM.YYYY HH:mm"
+                        placeholder="Sana va vaqt tanlang"
+                        allowClear={false}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="vip"
+                      label="VIP holati"
+                      valuePropName="checked"
+                      className="checkin-vip-item"
+                    >
+                      <Checkbox>VIP mehmon (to'lov olinmaydi)</Checkbox>
+                    </Form.Item>
+                  </>
                 )}
               </div>
             </div>

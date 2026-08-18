@@ -30,6 +30,11 @@ const roomCategoryOptions = [
   { label: "1 Kishilik", value: "bir_kishilik" },
 ];
 
+const roomKorpusOptions = [
+  { label: "A korpus", value: "A" },
+  { label: "B korpus", value: "B" },
+];
+
 const roomStatusOptions = [
   { label: "Bo'sh", value: "bosh" },
   { label: "Band", value: "band" },
@@ -41,8 +46,16 @@ const roomConditionOptions = [
   { label: "Remont", value: "remont" },
 ];
 
+const parseLegacyRoomNumber = (value) => {
+  const raw = String(value || "").trim().toUpperCase();
+  const match = raw.match(/^(\d+)([AB])$/);
+  if (!match) return { roomNumber: raw, korpus: "A" };
+  return { roomNumber: match[1], korpus: match[2] };
+};
+
 const initialForm = {
   roomNumber: "",
+  korpus: "A",
   floor: 1,
   capacity: 1,
   category: "standart",
@@ -60,6 +73,7 @@ function RoomsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState("");
   const [query, setQuery] = useState("");
+  const [korpusFilter, setKorpusFilter] = useState(undefined);
   const [floorFilter, setFloorFilter] = useState(undefined);
   const [categoryFilter, setCategoryFilter] = useState(undefined);
   const [statusFilter, setStatusFilter] = useState(undefined);
@@ -90,19 +104,22 @@ function RoomsPage() {
     const q = query.trim().toLowerCase();
     return rooms.filter((room) => {
       const roomNumber = String(room.roomNumber || "").toLowerCase();
+      const korpus = String(room.korpus || "").toLowerCase();
       const category = String(room.category || "").toLowerCase();
       const status = String(room.status || "").toLowerCase();
       const byText =
         !q ||
         roomNumber.includes(q) ||
+        korpus.includes(q) ||
         category.includes(q) ||
         status.includes(q);
       const byFloor = floorFilter === undefined || room.floor === floorFilter;
+      const byKorpus = !korpusFilter || room.korpus === korpusFilter;
       const byCategory = !categoryFilter || room.category === categoryFilter;
       const byStatus = !statusFilter || room.status === statusFilter;
-      return byText && byFloor && byCategory && byStatus;
+      return byText && byFloor && byKorpus && byCategory && byStatus;
     });
-  }, [rooms, query, floorFilter, categoryFilter, statusFilter]);
+  }, [rooms, query, floorFilter, korpusFilter, categoryFilter, statusFilter]);
 
   const openCreateModal = () => {
     setError("");
@@ -111,11 +128,15 @@ function RoomsPage() {
     setIsModalOpen(true);
   };
 
+  const korpusSegments = useMemo(() => roomKorpusOptions, []);
+
   const openEditModal = (room) => {
     setError("");
     setEditingId(room._id);
+    const legacy = parseLegacyRoomNumber(room.roomNumber);
     form.setFieldsValue({
-      roomNumber: room.roomNumber,
+      roomNumber: legacy.roomNumber,
+      korpus: room.korpus || legacy.korpus || "A",
       floor: room.floor,
       capacity: room.capacity || 1,
       category: room.category,
@@ -133,8 +154,15 @@ function RoomsPage() {
   };
 
   const onSubmit = async (values) => {
+    const roomNumberRaw = String(values.roomNumber || "").trim().toUpperCase();
+    const roomNumberValue = String(roomNumberRaw || "").replace(/[AB]$/, "");
+    const korpusValue =
+      String(values.korpus || "").trim().toUpperCase() ||
+      parseLegacyRoomNumber(roomNumberRaw).korpus ||
+      "A";
     const payload = {
-      roomNumber: String(values.roomNumber || "").trim(),
+      roomNumber: roomNumberValue,
+      korpus: korpusValue,
       floor: Number(values.floor),
       capacity: Number(values.capacity || 1),
       category: values.category,
@@ -219,13 +247,21 @@ function RoomsPage() {
               ) : null}
               <input
                 className="search-input"
-                placeholder="Qidirish: xona raqami, kategoriya, status"
+                placeholder="Qidirish: xona raqami, korpus, kategoriya, status"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
             {!isMobileFilters ? (
               <>
+                <Select
+                  allowClear
+                  className="filter-select"
+                  placeholder="Korpus"
+                  options={roomKorpusOptions}
+                  value={korpusFilter}
+                  onChange={setKorpusFilter}
+                />
                 <Select
                   allowClear
                   className="filter-select"
@@ -275,6 +311,9 @@ function RoomsPage() {
                   </span>
                 </div>
                 <div className="room-meta">
+                  <div>
+                    <strong>Korpus:</strong> {room.korpus || "-"} korpus
+                  </div>
                   <div>
                     <strong>Qavat:</strong> {room.floor}
                   </div>
@@ -389,6 +428,7 @@ function RoomsPage() {
             initialValues={initialForm}
             onFinish={onSubmit}
             requiredMark={false}
+            className="rooms-form-grid"
           >
             <Form.Item
               name="roomNumber"
@@ -404,13 +444,13 @@ function RoomsPage() {
               <Input placeholder="Masalan: 305" />
             </Form.Item>
 
-            {/* <Form.Item
-              name="floor"
-              label="Qavat"
-              rules={[{ required: true, message: "Qavat majburiy" }]}
+            <Form.Item
+              name="korpus"
+              label="Korpus"
+              rules={[{ required: true, message: "Korpus majburiy" }]}
             >
-              <InputNumber min={1} style={{ width: "100%" }} />
-            </Form.Item> */}
+              <Segmented options={korpusSegments} block />
+            </Form.Item>
 
             <Form.Item
               name="floor"
@@ -441,13 +481,6 @@ function RoomsPage() {
               />
             </Form.Item>
 
-            {/* <Form.Item
-              name="capacity"
-              label="Sig'imi"
-              rules={[{ required: true, message: "Sig'im majburiy" }]}
-            >
-              <InputNumber min={1} style={{ width: "100%" }} />
-            </Form.Item> */}
             <Form.Item
               name="capacity"
               label="Sig'imi"
@@ -485,20 +518,6 @@ function RoomsPage() {
               <Select options={roomCategoryOptions} />
             </Form.Item>
 
-            {/* <Form.Item
-              name={["prices", "oddiy"]}
-              label="Standart narx"
-              rules={[{ required: true, message: "Standart narx majburiy" }]}
-            >
-              <InputNumber
-                min={0}
-                style={{ width: "100%" }}
-                formatter={(value) =>
-                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
-                }
-              />
-            </Form.Item> */}
-
             <Form.Item
               name={["prices", "oddiy"]}
               label="Standart narx"
@@ -528,18 +547,6 @@ function RoomsPage() {
               />
             </Form.Item>
 
-            {/* <Form.Item
-              name={["prices", "chetEllik"]}
-              label="Xorijiy mehmonlar uchun narx"
-              rules={[
-                {
-                  required: true,
-                  message: "Xorijiy mehmonlar uchun narx majburiy",
-                },
-              ]}
-            >
-              <InputNumber min={0} style={{ width: "100%" }} />
-            </Form.Item> */}
             <Form.Item
               name={["prices", "chetEllik"]}
               label="Xorijiy mehmonlar uchun narx"
@@ -614,6 +621,14 @@ function RoomsPage() {
           <Select
             allowClear
             className="filter-select"
+            placeholder="Korpus"
+            options={roomKorpusOptions}
+            value={korpusFilter}
+            onChange={setKorpusFilter}
+          />
+          <Select
+            allowClear
+            className="filter-select"
             placeholder="Qavat"
             options={floorOptions}
             value={floorFilter}
@@ -645,6 +660,7 @@ function RoomsPage() {
             <Button
               onClick={() => {
                 setFloorFilter(undefined);
+                setKorpusFilter(undefined);
                 setCategoryFilter(undefined);
                 setStatusFilter(undefined);
               }}

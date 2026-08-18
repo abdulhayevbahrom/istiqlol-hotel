@@ -697,6 +697,15 @@ a {
   align-items: stretch;
 }
 
+.guests-bulk-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
 .guests-more-btn.ant-btn {
   width: 44px;
   min-width: 44px;
@@ -971,6 +980,33 @@ a {
   font-weight: 700;
 }
 
+.rooms-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.rooms-form-grid .ant-form-item {
+  margin-bottom: 0;
+}
+
+.rooms-form-grid .ant-form-item:nth-last-child(-n + 2) {
+  grid-column: 1 / -1;
+}
+
+.rooms-form-grid .ant-segmented {
+  width: 100%;
+}
+
+.rooms-form-grid .ant-segmented-item-selected {
+  background: var(--hotel-navy) !important;
+  color: #fff !important;
+}
+
+.rooms-form-grid .ant-segmented-item-selected .ant-segmented-item-label {
+  color: #fff !important;
+}
+
 .guest-edit-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1015,8 +1051,8 @@ a {
 .checkin-room-extra-block {
   grid-column: 3;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 16px;
+  grid-template-columns: 1fr;
+  gap: 12px;
   align-items: start;
 }
 
@@ -1024,10 +1060,25 @@ a {
   margin-bottom: 0;
 }
 
+.checkin-room-extra-second {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.checkin-room-extra-second .ant-form-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .checkin-vip-item .ant-form-item-control-input {
   min-height: 32px;
   display: flex;
   align-items: center;
+}
+
+.checkin-vip-item {
+  margin-top: 2px;
 }
 
 .checkin-vip-item .ant-checkbox-wrapper {
@@ -1437,6 +1488,10 @@ a {
     gap: 8px 10px;
   }
 
+  .checkin-room-extra-second {
+    flex-direction: column;
+  }
+
   .checkin-vip-item .ant-checkbox-wrapper {
     white-space: normal;
   }
@@ -1546,6 +1601,15 @@ a {
   .checkin-modern .row-actions .ant-btn {
     width: 100%;
     min-height: 38px;
+  }
+
+  .rooms-form-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .rooms-form-grid .ant-form-item:nth-last-child(-n + 2) {
+    grid-column: auto;
   }
 
   .employees-page .page-card {
@@ -1751,6 +1815,11 @@ a {
 
   .guests-page .guests-filter-actions {
     justify-content: flex-end;
+  }
+
+  .guests-bulk-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .guests-page .guests-table-wrap {

@@ -43,6 +43,14 @@ const categoryLabels = {
   bir_kishilik: "1 kishilik",
 };
 
+const formatRoomLabel = (room) => {
+  if (!room) return "-";
+  const parts = [room.roomNumber || "-"];
+  if (room.korpus) parts.push(`${room.korpus} korpus`);
+  if (room.floor) parts.push(`${room.floor}-qavat`);
+  return parts.join(" / ");
+};
+
 function OccupancyPage() {
   const [viewStart, setViewStart] = useState(() => startOfDay(new Date()));
   const [floor, setFloor] = useState();
@@ -177,7 +185,10 @@ function OccupancyPage() {
                 <div className="occupancy-room-row" key={room._id}>
                   <div className="occupancy-room-label">
                     <strong>{room.roomNumber}</strong>
-                    <span>{room.floor}-qavat · {categoryLabels[room.category] || room.category || "-"}</span>
+                    <span>
+                      {room.korpus ? `${room.korpus} korpus · ` : ""}
+                      {room.floor}-qavat · {categoryLabels[room.category] || room.category || "-"}
+                    </span>
                   </div>
                   <div
                     className={`occupancy-room-timeline ${isRepair ? "is-repair" : ""}`}
@@ -214,7 +225,7 @@ function OccupancyPage() {
         {selectedGuest ? (
           <div className="occupancy-detail">
             <div><span>Mijoz</span><strong>{selectedGuest.firstname} {selectedGuest.lastname}</strong></div>
-            <div><span>Xona</span><strong>{selectedGuest.room?.roomNumber || "-"}</strong></div>
+            <div><span>Xona</span><strong>{formatRoomLabel(selectedGuest.room)}</strong></div>
             <div><span>Kelish</span><strong>{formatDate(selectedGuest.bookedForAt || selectedGuest.checkInAt)}</strong></div>
             <div><span>Chiqish</span><strong>{formatDate(selectedGuest.checkoutDueAt)}</strong></div>
             <div><span>Holati</span><strong>{selectedGuest.status === "booked" ? "Bron qilingan" : "Hozir yashayapti"}</strong></div>

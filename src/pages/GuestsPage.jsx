@@ -35,6 +35,7 @@ import {
   useAddGuestServiceMutation,
   useAddGuestPaymentMutation,
   useCheckoutGuestMutation,
+  useCheckoutGuestsBulkMutation,
   useDecideVipRequestMutation,
   useDeleteGuestMutation,
   useGetGuestsQuery,
@@ -96,6 +97,14 @@ const formatActionBy = (actionBy) => {
   return actionBy?.login || "-";
 };
 
+const formatRoomLabel = (room) => {
+  if (!room) return "-";
+  const roomNumber = room.roomNumber || "-";
+  const korpus = room.korpus ? `${room.korpus} korpus` : "";
+  const floor = room.floor ? `${room.floor}-qavat` : "";
+  return [roomNumber, korpus, floor].filter(Boolean).join(" / ");
+};
+
 const VipRequestsPanel = memo(function VipRequestsPanel({
   vipRequests,
   decidingVip,
@@ -116,7 +125,7 @@ const VipRequestsPanel = memo(function VipRequestsPanel({
               </strong>
               <span>
                 Passport: {request.guest?.passport || "-"} | Xona:{" "}
-                {request.guest?.room?.roomNumber || "-"}
+                {formatRoomLabel(request.guest?.room)}
               </span>
             </div>
             <div className="vip-request-actions">
@@ -165,6 +174,7 @@ function GuestsPage({ tab = "active" }) {
   const [serviceForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const [paymentGuest, setPaymentGuest] = useState(null);
+  const [selectedGuestIds, setSelectedGuestIds] = useState([]);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isMobileFilters, setIsMobileFilters] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 900 : false,
@@ -267,6 +277,10 @@ function GuestsPage({ tab = "active" }) {
   }, [tab]);
 
   useEffect(() => {
+    setSelectedGuestIds([]);
+  }, [tab, page, filters]);
+
+  useEffect(() => {
     if (!token) return undefined;
 
     const socket = acquireSocketConnection(token);
@@ -319,6 +333,8 @@ function GuestsPage({ tab = "active" }) {
   const [updateGuest, { isLoading: updating }] = useUpdateGuestMutation();
   const [checkoutGuest, { isLoading: checkingOut }] =
     useCheckoutGuestMutation();
+  const [checkoutGuestsBulk, { isLoading: bulkCheckingOut }] =
+    useCheckoutGuestsBulkMutation();
   const [decideVipRequest, { isLoading: decidingVip }] =
     useDecideVipRequestMutation();
 
@@ -406,6 +422,7 @@ function GuestsPage({ tab = "active" }) {
       guestType: guest.guestType || "uzb",
       dailyRate: Number(guest.dailyRate || 0),
       stayDays: Number(guest.stayDays || 1),
+      checkInAt: guest.checkInAt ? dayjs(guest.checkInAt) : null,
       bookedForAt: guest.bookedForAt ? dayjs(guest.bookedForAt) : null,
       isBlacklisted: Boolean(guest.isBlacklisted),
       note: guest.note || "",
@@ -488,6 +505,21 @@ function GuestsPage({ tab = "active" }) {
     }
   };
 
+  const onBulkCheckout = async () => {
+    if (!selectedGuestIds.length) {
+      toast.info("Kamida 1 ta mehmonni tanlang");
+      return;
+    }
+
+    try {
+      const result = await checkoutGuestsBulk({ ids: selectedGuestIds }).unwrap();
+      toast.success(result?.message || "Tanlangan mehmonlar checkout qilindi");
+      setSelectedGuestIds([]);
+    } catch (err) {
+      toast.error(err?.data?.message || "Bulk checkoutda xatolik");
+    }
+  };
+
   const onServiceSubmit = async (values) => {
     try {
       const selectedService = serviceOptions.find(
@@ -542,14 +574,15 @@ function GuestsPage({ tab = "active" }) {
         id: editGuestId,
         firstname: String(values.firstname || "").trim(),
         lastname: String(values.lastname || "").trim(),
-        passport: String(values.passport || "").trim(),
-        phone: String(values.phone || "").trim(),
-        guestType: values.guestType || "uzb",
-        dailyRate: Number(values.dailyRate || 0),
-        stayDays: Number(values.stayDays || 1),
-        note: String(values.note || "").trim(),
-        isBlacklisted: Boolean(values.isBlacklisted),
-      };
+      passport: String(values.passport || "").trim(),
+      phone: String(values.phone || "").trim(),
+      guestType: values.guestType || "uzb",
+      dailyRate: Number(values.dailyRate || 0),
+      stayDays: Number(values.stayDays || 1),
+      note: String(values.note || "").trim(),
+      isBlacklisted: Boolean(values.isBlacklisted),
+      checkInAt: values.checkInAt ? values.checkInAt.toISOString() : undefined,
+    };
       if (editGuestStatus === "booked" && values.bookedForAt) {
         payload.bookedForAt = values.bookedForAt.format("YYYY-MM-DD");
       }
@@ -611,8 +644,7 @@ function GuestsPage({ tab = "active" }) {
         Telefon: guest.phone || "",
         "Mehmon turi": guest.guestType === "chetellik" ? "Chet ellik" : "UZB",
         VIP: guest.vip ? "Ha" : "Yo'q",
-        Xona: guest.room?.roomNumber || "",
-        Qavat: guest.room?.floor ? `${guest.room.floor}-qavat` : "",
+        Xona: formatRoomLabel(guest.room),
         "Xona turi":
           guest.room?.category === "bir_kishilik"
             ? "1 Kishilik"
@@ -697,6 +729,15 @@ function GuestsPage({ tab = "active" }) {
     if (start && end && start.isValid() && end.isValid()) return [start, end];
     return null;
   }, [filters.endDate, filters.startDate]);
+  const activeSelectableGuests = useMemo(
+    () => guests.filter((guest) => guest.status === "active"),
+    [guests],
+  );
+  const selectedGuestCount = selectedGuestIds.length;
+  const allVisibleSelected =
+    tab === "active" &&
+    activeSelectableGuests.length > 0 &&
+    activeSelectableGuests.every((guest) => selectedGuestIds.includes(guest._id));
 
   return (
     <div className="employee-page guests-page">
@@ -819,10 +860,38 @@ function GuestsPage({ tab = "active" }) {
           <PageLoader />
         ) : (
           <>
+            {tab === "active" ? (
+              <div className="guests-bulk-actions">
+                <Checkbox
+                  checked={allVisibleSelected}
+                  indeterminate={
+                    selectedGuestCount > 0 && !allVisibleSelected
+                  }
+                  onChange={(e) => {
+                    setSelectedGuestIds(
+                      e.target.checked
+                        ? activeSelectableGuests.map((guest) => guest._id)
+                        : [],
+                    );
+                  }}
+                >
+                Barchasi
+                </Checkbox>
+                <Button
+                  className="hotel-primary-btn"
+                  loading={bulkCheckingOut}
+                  disabled={!selectedGuestIds.length}
+                  onClick={onBulkCheckout}
+                >
+                  Checkout qilish ({selectedGuestIds.length})
+                </Button>
+              </div>
+            ) : null}
             <div className="table-wrap guests-table-wrap">
               <table className="table">
                 <thead>
                   <tr>
+                    {tab === "active" ? <th></th> : null}
                     <th>F.I.SH</th>
                     <th>Passport</th>
                     <th>Xona</th>
@@ -844,6 +913,21 @@ function GuestsPage({ tab = "active" }) {
                 <tbody>
                   {guests.map((guest) => (
                     <tr key={guest._id}>
+                      {tab === "active" ? (
+                        <td data-label="Tanlash">
+                          <Checkbox
+                            checked={selectedGuestIds.includes(guest._id)}
+                            onChange={(e) => {
+                              setSelectedGuestIds((prev) =>
+                                e.target.checked
+                                  ? [...new Set([...prev, guest._id])]
+                                  : prev.filter((id) => id !== guest._id),
+                              );
+                            }}
+                            disabled={guest.status !== "active"}
+                          />
+                        </td>
+                      ) : null}
                       <td data-label="F.I.SH">
                         {guest.firstname} {guest.lastname}
                       </td>
@@ -852,9 +936,10 @@ function GuestsPage({ tab = "active" }) {
                         <b>{guest.room?.roomNumber || "-"}</b>
                         <br />
                         <span className="room-floor">
-                          {guest.room?.floor
-                            ? `${guest.room.floor}-qavat`
+                          {guest.room?.korpus
+                            ? `${guest.room.korpus} korpus`
                             : "-"}
+                          {guest.room?.floor ? ` · ${guest.room.floor}-qavat` : ""}
                         </span>
                       </td>
                       <td data-label="Kunlar">
@@ -1051,7 +1136,7 @@ function GuestsPage({ tab = "active" }) {
                   {guests.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={tab === "history" ? 15 : 13}
+                        colSpan={tab === "history" ? 15 : tab === "active" ? 14 : 13}
                         className="table-empty"
                       >
                         Hech narsa topilmadi
@@ -1439,6 +1524,18 @@ function GuestsPage({ tab = "active" }) {
                 parser={(value) => String(value || "").replace(/[^\d]/g, "")}
                 onKeyDown={blockNonIntegerKeys}
               />
+              </Form.Item>
+            <Form.Item
+              name="checkInAt"
+              label="Kelgan sana vaqti"
+              rules={[{ required: true, message: "Kelgan sana vaqti majburiy" }]}
+            >
+              <DatePicker
+                style={{ width: "100%" }}
+                showTime={{ format: "HH:mm" }}
+                format="DD.MM.YYYY HH:mm"
+                allowClear={false}
+              />
             </Form.Item>
             {editGuestStatus === "booked" ? (
               <Form.Item
@@ -1566,7 +1663,10 @@ function GuestsPage({ tab = "active" }) {
           </div>
           <div className="receipt-row">
             <span>Xona:</span>
-            <span>{receiptData?.roomNumber || "-"}</span>
+            <span>
+              {receiptData?.roomNumber || "-"}
+              {receiptData?.roomKorpus ? ` / ${receiptData.roomKorpus}` : ""}
+            </span>
           </div>
           <div className="receipt-row">
             <span>To'lov turi:</span>
@@ -1626,10 +1726,7 @@ function GuestsPage({ tab = "active" }) {
               {hotelReceiptData?.lastname || ""}
             </div>
             <div>
-              <b>Xona:</b> {hotelReceiptData?.room?.roomNumber || "-"} /{" "}
-              {hotelReceiptData?.room?.floor
-                ? `${hotelReceiptData.room.floor}-qavat`
-                : "-"}
+              <b>Xona:</b> {formatRoomLabel(hotelReceiptData?.room)}
             </div>
             <div>
               <b>Passport:</b> {hotelReceiptData?.passport || "-"}
