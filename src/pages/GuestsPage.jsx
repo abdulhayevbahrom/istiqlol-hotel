@@ -407,6 +407,30 @@ function GuestsPage({ tab = "active" }) {
     setIsPaymentModalOpen(true);
   };
 
+  const openBulkPaymentModal = () => {
+    const paymentGuests = activeSelectableGuests.filter(
+      (guest) => selectedGuestIds.includes(guest._id) && !guest.vip && Number(guest.debtAmount || 0) > 0,
+    );
+    if (!paymentGuests.length) {
+      toast.error("To'lov uchun qarzdor mijozlarni tanlang");
+      return;
+    }
+    const totalDebt = paymentGuests.reduce(
+      (sum, guest) => sum + Math.max(Number(guest.debtAmount || 0), 0),
+      0,
+    );
+    setPaymentGuest({
+      bulk: true,
+      guests: paymentGuests,
+      debtAmount: totalDebt,
+      firstname: `${paymentGuests.length} ta mijoz`,
+      lastname: "",
+    });
+    setPaymentGuestId("");
+    paymentForm.setFieldsValue({ amount: totalDebt, type: "naqd", note: "" });
+    setIsPaymentModalOpen(true);
+  };
+
   const closePaymentModal = () => {
     setIsPaymentModalOpen(false);
     setPaymentGuestId("");
@@ -500,6 +524,35 @@ function GuestsPage({ tab = "active" }) {
       const paymentAmount = Number(values.amount || 0);
       if (paymentAmount > debtAmount) {
         toast.error("To'lov qarzdan oshmasin");
+        return;
+      }
+      if (paymentGuest?.bulk) {
+        let remaining = paymentAmount;
+        const unpaidGuests = paymentGuest.guests.filter(
+          (guest) => Number(guest.debtAmount || 0) > 0,
+        );
+        for (let index = 0; index < unpaidGuests.length; index += 1) {
+          const guest = unpaidGuests[index];
+          const guestDebt = Math.max(Number(guest.debtAmount || 0), 0);
+          const remainingGuests = unpaidGuests.length - index;
+          const equalShare = Math.floor(remaining / remainingGuests);
+          const guestPayment = Math.min(
+            guestDebt,
+            index === unpaidGuests.length - 1 ? remaining : equalShare,
+          );
+          if (guestPayment <= 0) continue;
+          await addPayment({
+            id: guest._id,
+            amount: guestPayment,
+            type: values.type,
+            note: String(values.note || "").trim() || "Umumiy to'lov",
+          }).unwrap();
+          remaining -= guestPayment;
+          if (remaining <= 0) break;
+        }
+        toast.success("Umumiy to'lov mijozlarga taqsimlandi");
+        closePaymentModal();
+        setSelectedGuestIds([]);
         return;
       }
       const result = await addPayment({
@@ -818,6 +871,14 @@ function GuestsPage({ tab = "active" }) {
     [guests],
   );
   const selectedGuestCount = selectedGuestIds.length;
+  const selectedPaymentGuests = useMemo(
+    () => activeSelectableGuests.filter((guest) => selectedGuestIds.includes(guest._id)),
+    [activeSelectableGuests, selectedGuestIds],
+  );
+  const selectedRoomIds = new Set(
+    selectedPaymentGuests.map((guest) => String(guest.room?._id || guest.room || "")),
+  );
+  const hasGuestsFromMultipleRooms = selectedRoomIds.size > 1;
   const allVisibleSelected =
     tab === "active" &&
     activeSelectableGuests.length > 0 &&
@@ -964,14 +1025,32 @@ function GuestsPage({ tab = "active" }) {
                     Jami: {activeSelectableGuests.length}
                   </span>
                 </Checkbox>
+                <div style={{display: "flex", gap: "10px"}}>
                 <Button
                   className="hotel-primary-btn"
                   loading={bulkCheckingOut}
                   disabled={!selectedGuestIds.length}
                   onClick={onBulkCheckout}
-                >
+                  >
                   Checkout qilish ({selectedGuestIds.length})
                 </Button>
+                <Button
+                  className="hotel-primary-btn"
+                  disabled={
+                    !selectedGuestIds.length ||
+                    hasGuestsFromMultipleRooms ||
+                    paying
+                  }
+                  title={
+                    hasGuestsFromMultipleRooms
+                      ? "Umumiy to'lov faqat bitta xonadagi mijozlar uchun"
+                      : "Umumiy to'lov"
+                  }
+                  onClick={openBulkPaymentModal}
+                >
+                  Umumiy to'lov
+                </Button>
+                  </div>
               </div>
             ) : null}
             <div className="table-wrap guests-table-wrap">
@@ -1031,7 +1110,7 @@ function GuestsPage({ tab = "active" }) {
                         <br />
                         <span className="room-floor">
                           {guest.room?.korpus
-                            ? `${guest.room.korpus} korpus`
+                            ? `${guest.room.korpus}`
                             : "-"}
                           {guest.room?.floor ? ` · ${guest.room.floor}-qavat` : ""}
                         </span>
@@ -1372,7 +1451,7 @@ function GuestsPage({ tab = "active" }) {
           >
             <Form.Item
               name="amount"
-              label="Summasi"
+              label={paymentGuest?.bulk ? "Umumiy to'lov summasi" : "Summasi"}
               rules={[
                 { required: true, message: "Summa majburiy" },
                 () => ({

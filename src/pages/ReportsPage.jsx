@@ -1,5 +1,5 @@
 import { memo, useMemo, useRef, useState } from "react";
-import { Alert, Button, DatePicker, Modal, Spin } from "antd";
+import { Alert, Button, DatePicker, Spin, Tabs } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/uz";
 import { useNavigate } from "react-router-dom";
@@ -34,13 +34,6 @@ const formatCompactMoney = (value) => {
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)} mln`;
   if (amount >= 1_000) return `${(amount / 1_000).toFixed(1)} ming`;
   return `${Math.round(amount)}`;
-};
-
-const PAYMENT_TYPE_LABELS = {
-  naqd: "Naqd",
-  karta: "Karta",
-  click: "Click",
-  bank: "O'tkazma",
 };
 
 const REPORT_DESTINATIONS = {
@@ -315,7 +308,7 @@ function ReportsPage() {
     dayjs().startOf("month"),
   );
   const [dailyReportDate, setDailyReportDate] = useState(() => dayjs());
-  const [isDailyReportOpen, setIsDailyReportOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("summary");
   const hotelName = localStorage.getItem("hotelName") || "GRAND HOTEL";
   const monthKey = selectedMonth.format("YYYY-MM");
 
@@ -331,11 +324,12 @@ function ReportsPage() {
     data: dailyResponse,
     isFetching: isDailyReportFetching,
     error: dailyReportError,
-  } = useGetDailyReportQuery(dailyDateKey, { skip: !isDailyReportOpen });
+  } = useGetDailyReportQuery(dailyDateKey, { skip: activeTab !== "daily" });
 
   const reportData = data?.innerData || {};
   const sections = reportData?.sections || {};
   const dailyReport = dailyResponse?.innerData;
+  const dailyGuestRows = dailyReport?.guests || [];
 
   const quickHighlights = useMemo(
     () => [
@@ -378,6 +372,22 @@ function ReportsPage() {
     setSelectedMonth(value.startOf("month"));
   };
 
+  const formatRoomLabel = (guest) => {
+    const roomNumber = guest?.roomNumber ? String(guest.roomNumber) : "-";
+    const korpus = guest?.korpus ? `[${guest.korpus}]` : "[-]";
+    const floor =
+      guest?.floor !== undefined &&
+      guest?.floor !== null &&
+      guest?.floor !== "-"
+        ? `[${guest.floor}-qavat]`
+        : "[-]";
+    return (
+      <>
+        <span className="room-label-number">{roomNumber}</span> {korpus} {floor}
+      </>
+    );
+  };
+
   const printDailyReport = useReactToPrint({
     content: () => dailyReportRef.current,
     documentTitle: `Kunlik-hisobot-${dailyReportDate.format("YYYY-MM-DD")}`,
@@ -406,8 +416,8 @@ function ReportsPage() {
               <div>
                 <h2>Mehmonxona bo'yicha batafsil ko'rsatkichlar</h2>
                 <p>
-                  Bu yerda pul tushumi, xarajatlar, bronlar va mijozlar
-                  holati bitta sahifada sodda ko'rinishda chiqadi.
+                  Bu yerda pul tushumi, xarajatlar, bronlar va mijozlar holati
+                  bitta sahifada sodda ko'rinishda chiqadi.
                 </p>
               </div>
 
@@ -424,14 +434,6 @@ function ReportsPage() {
                   <span>Tanlangan oy</span>
                   <strong>{reportData?.month || monthKey}</strong>
                 </div>
-                <Button
-                  type="primary"
-                  icon={<FiPrinter size={16} />}
-                  className="reports-daily-button"
-                  onClick={() => setIsDailyReportOpen(true)}
-                >
-                  Kunlik hisobot PDF
-                </Button>
               </div>
             </div>
           </div>
@@ -439,7 +441,8 @@ function ReportsPage() {
           <div className="reports-highlights">
             {quickHighlights.map((item) => {
               const Icon = item.icon;
-              const destination = HIGHLIGHT_DESTINATIONS[item.title] || "/reports";
+              const destination =
+                HIGHLIGHT_DESTINATIONS[item.title] || "/reports";
               return (
                 <article
                   key={item.title}
@@ -472,192 +475,259 @@ function ReportsPage() {
           </section>
         ) : null}
 
-        <section className="reports-groups">
-          {reportGroups.map((group) => {
-            const Icon = group.icon;
-            return (
-              <article
-                key={group.title}
-                className={`reports-group-card reports-group-${group.accent}`}
-              >
-                <header className="reports-group-head">
-                  <span className="reports-group-icon">
-                    <Icon size={17} />
-                  </span>
-                  <div>
-                    <h3>{group.title}</h3>
-                    <p>{group.items.length} ta hisobot yo'nalishi</p>
-                  </div>
-                </header>
-
-                <div className="reports-item-list">
-                  {group.items.map((item) => {
-                    const metric = getReportMetric(item.key, sections);
-                    const destination = REPORT_DESTINATIONS[item.key] || "/reports";
-
-                    return (
-                      <div
-                        key={item.title}
-                        className="reports-item-card reports-clickable-card"
-                        {...createNavigateProps(
-                          navigate,
-                          destination,
-                          `${item.title} bo'limini ochish`,
-                        )}
-                      >
-                        <div className="reports-item-title-row">
-                          <b>{item.title}</b>
-                          <div className="reports-item-badge">
-                            <span className="reports-item-badge-value">
-                              {isFetching ? "..." : metric.value}
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          className="reports-tabs"
+          items={[
+            {
+              key: "summary",
+              label: "Hisobotlar",
+              children: (
+                <>
+                  <section className="reports-groups">
+                    {reportGroups.map((group) => {
+                      const Icon = group.icon;
+                      return (
+                        <article
+                          key={group.title}
+                          className={`reports-group-card reports-group-${group.accent}`}
+                        >
+                          <header className="reports-group-head">
+                            <span className="reports-group-icon">
+                              <Icon size={17} />
                             </span>
-                            <small className="reports-item-badge-detail">
-                              {isFetching ? "Yangilanmoqda" : metric.detail}
-                            </small>
+                            <div>
+                              <h3>{group.title}</h3>
+                              <p>{group.items.length} ta hisobot yo'nalishi</p>
+                            </div>
+                          </header>
+
+                          <div className="reports-item-list">
+                            {group.items.map((item) => {
+                              const metric = getReportMetric(
+                                item.key,
+                                sections,
+                              );
+                              const destination =
+                                REPORT_DESTINATIONS[item.key] || "/reports";
+
+                              return (
+                                <div
+                                  key={item.title}
+                                  className="reports-item-card reports-clickable-card"
+                                  {...createNavigateProps(
+                                    navigate,
+                                    destination,
+                                    `${item.title} bo'limini ochish`,
+                                  )}
+                                >
+                                  <div className="reports-item-title-row">
+                                    <b>{item.title}</b>
+                                    <div className="reports-item-badge">
+                                      <span className="reports-item-badge-value">
+                                        {isFetching ? "..." : metric.value}
+                                      </span>
+                                      <small className="reports-item-badge-detail">
+                                        {isFetching
+                                          ? "Yangilanmoqda"
+                                          : metric.detail}
+                                      </small>
+                                    </div>
+                                  </div>
+                                  <p>{item.text}</p>
+                                  <div className="reports-item-meta">
+                                    {metric.meta}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        </div>
-                        <p>{item.text}</p>
-                        <div className="reports-item-meta">{metric.meta}</div>
+                        </article>
+                      );
+                    })}
+                  </section>
+
+                  <section className="reports-footer-note">
+                    <span className="reports-footer-icon">
+                      <FiClipboard size={15} />
+                    </span>
+                    Jami tushum:{" "}
+                    {formatMoney(sections?.finance?.profitLoss?.revenue)} so'm.
+                    Jami xarajat:{" "}
+                    {formatMoney(sections?.finance?.profitLoss?.expense)} so'm.
+                    Yangilangan vaqt:{" "}
+                    {reportData?.generatedAt
+                      ? dayjs(reportData.generatedAt).format("DD.MM.YYYY HH:mm")
+                      : "-"}
+                    .
+                  </section>
+                </>
+              ),
+            },
+            {
+              key: "daily",
+              label: "Kunlik hisobot",
+              children: (
+                <div className="daily-report-tab">
+                  <div className="daily-report-toolbar">
+                    <span>Hisobot sanasi</span>
+                    <DatePicker
+                      allowClear={false}
+                      value={dailyReportDate}
+                      onChange={(value) => value && setDailyReportDate(value)}
+                      disabledDate={(current) =>
+                        current &&
+                        current.startOf("day").isAfter(dayjs().startOf("day"))
+                      }
+                      format="DD.MM.YYYY"
+                    />
+                    <small></small>
+                    <Button
+                      type="primary"
+                      icon={<FiPrinter size={16} />}
+                      disabled={
+                        isDailyReportFetching ||
+                        !dailyReport ||
+                        Boolean(dailyReportError)
+                      }
+                      onClick={printDailyReport}
+                    >
+                      Chop etish
+                    </Button>
+                  </div>
+
+                  {dailyReportError ? (
+                    <Alert
+                      type="error"
+                      showIcon
+                      message="Kunlik hisobotni olishda xatolik yuz berdi"
+                    />
+                  ) : null}
+
+                  <Spin
+                    spinning={isDailyReportFetching}
+                    tip="Hisobot yuklanmoqda..."
+                  >
+                    <div className="daily-report-preview-wrap">
+                      <div ref={dailyReportRef} className="daily-report-sheet">
+                        <header className="daily-report-head">
+                          <div>
+                            <div className="daily-report-brand">
+                              {hotelName}
+                            </div>
+                            <div className="daily-report-address">
+                              Mehmonxona boshqaruv tizimi
+                            </div>
+                          </div>
+                          <div className="daily-report-title">
+                            <h1>KUNLIK HISOBOT</h1>
+                            <strong>
+                              {dailyReportDate.format("DD MMMM YYYY")}
+                            </strong>
+                          </div>
+                        </header>
+
+                        <section className="daily-report-section">
+                          <div className="daily-report-section-head">
+                            <h2>Aktiv mijozlar ro'yxati</h2>
+                            <span>{dailyGuestRows.length} ta xona</span>
+                          </div>
+                          <table className="daily-report-table daily-report-guest-table">
+                            <thead>
+                              <tr>
+                                <th>FIO</th>
+                                <th>Xona</th>
+                                <th>Kunlik narx</th>
+                                <th>Eski qarz</th>
+                                <th>Jami qarz</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {dailyGuestRows.map((guest, index) => (
+                                <tr
+                                  key={`${guest.roomNumber}-${guest.fullName}-${index}`}
+                                >
+                                  <td>{guest.fullName}</td>
+                                  <td>{formatRoomLabel(guest)}</td>
+                                  <td>{formatMoney(guest.dailyRate)} so'm</td>
+                                  <td>{formatMoney(guest.oldDebt)} so'm</td>
+                                  <td>{formatMoney(guest.totalDebt)} so'm</td>
+                                </tr>
+                              ))}
+                              {!dailyGuestRows.length ? (
+                                <tr>
+                                  <td
+                                    colSpan={6}
+                                    style={{ textAlign: "center" }}
+                                  >
+                                    Aktiv mijozlar topilmadi
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </tbody>
+                          </table>
+                        </section>
+
+                        <section className="daily-report-section daily-report-summary-grid">
+                          <div className="daily-report-rows">
+                            <div>
+                              <span>Jami aktiv xonalar</span>
+                              <b>
+                                {Number(
+                                  dailyReport?.operations?.occupiedRooms || 0,
+                                )}{" "}
+                                ta
+                              </b>
+                            </div>
+                            <div>
+                              <span>Jami aktiv mijozlar</span>
+                              <b>
+                                {Number(dailyReport?.operations?.guests || 0)}{" "}
+                                ta
+                              </b>
+                            </div>
+                            <div>
+                              <span>Jami qarzdorlar</span>
+                              <b>
+                                {Number(dailyReport?.debt?.debtors || 0)} ta
+                              </b>
+                            </div>
+                          </div>
+                          <div className="daily-report-rows">
+                            <div>
+                              <span>Jami qarz</span>
+                              <b>
+                                {formatMoney(dailyReport?.debt?.total)} so'm
+                              </b>
+                            </div>
+                            <div>
+                              <span>Chop etilgan vaqt</span>
+                              <b>{dayjs().format("DD.MM.YYYY HH:mm")}</b>
+                            </div>
+                            <div>
+                              <span>Sana</span>
+                              <b>{dailyReportDate.format("DD.MM.YYYY")}</b>
+                            </div>
+                          </div>
+                        </section>
+
+                        <footer className="daily-report-footer">
+                          <span>
+                            Tayyorladi: Administrator __________________
+                          </span>
+                          <span>
+                            Chop etildi: {dayjs().format("DD.MM.YYYY HH:mm")}
+                          </span>
+                        </footer>
                       </div>
-                    );
-                  })}
+                    </div>
+                  </Spin>
                 </div>
-              </article>
-            );
-          })}
-        </section>
-
-        <section className="reports-footer-note">
-          <span className="reports-footer-icon">
-            <FiClipboard size={15} />
-          </span>
-          Jami tushum: {formatMoney(sections?.finance?.profitLoss?.revenue)} so'm.
-          Jami xarajat: {formatMoney(sections?.finance?.profitLoss?.expense)} so'm.
-          Yangilangan vaqt:{" "}
-          {reportData?.generatedAt
-            ? dayjs(reportData.generatedAt).format("DD.MM.YYYY HH:mm")
-            : "-"}
-          .
-        </section>
-
-        <Modal
-          open={isDailyReportOpen}
-          onCancel={() => setIsDailyReportOpen(false)}
-          width={920}
-          title="Kunlik hisobot"
-          className="daily-report-modal"
-          footer={[
-            <Button key="close" onClick={() => setIsDailyReportOpen(false)}>
-              Yopish
-            </Button>,
-            <Button
-              key="print"
-              type="primary"
-              icon={<FiPrinter size={16} />}
-              disabled={isDailyReportFetching || !dailyReport || Boolean(dailyReportError)}
-              onClick={printDailyReport}
-            >
-              PDF saqlash / Print
-            </Button>,
+              ),
+            },
           ]}
-        >
-          <div className="daily-report-toolbar">
-            <span>Hisobot sanasi</span>
-            <DatePicker
-              allowClear={false}
-              value={dailyReportDate}
-              onChange={(value) => value && setDailyReportDate(value)}
-              disabledDate={(current) => current && current.startOf("day").isAfter(dayjs().startOf("day"))}
-              format="DD.MM.YYYY"
-            />
-            <small>Tanlangan sana bo'yicha haqiqiy ma'lumotlar</small>
-          </div>
-
-          {dailyReportError ? (
-            <Alert type="error" showIcon message="Kunlik hisobotni olishda xatolik yuz berdi" />
-          ) : null}
-
-          <Spin spinning={isDailyReportFetching} tip="Hisobot yuklanmoqda...">
-          <div className="daily-report-preview-wrap">
-            <div ref={dailyReportRef} className="daily-report-sheet">
-              <header className="daily-report-head">
-                <div>
-                  <div className="daily-report-brand">{hotelName}</div>
-                  <div className="daily-report-address">Mehmonxona boshqaruv tizimi</div>
-                </div>
-                <div className="daily-report-title">
-                  <h1>KUNLIK HISOBOT</h1>
-                  <strong>{dailyReportDate.format("DD MMMM YYYY")}</strong>
-                </div>
-              </header>
-
-              <section className="daily-report-summary">
-                <div><span>Kunlik tushum</span><strong>{formatMoney(dailyReport?.revenue?.total)} so'm</strong></div>
-                <div><span>Kunlik xarajat</span><strong className="is-expense">-{formatMoney(dailyReport?.expenses?.total)} so'm</strong></div>
-                <div className="is-primary"><span>Kunlik balans</span><strong>{formatMoney(dailyReport?.balance)} so'm</strong></div>
-              </section>
-
-              <section className="daily-report-section">
-                <h2>Operatsion ko'rsatkichlar</h2>
-                <div className="daily-report-kpis">
-                  <div><strong>{Number(dailyReport?.operations?.occupiedRooms || 0)}</strong><span>Band xonalar</span></div>
-                  <div><strong>{Number(dailyReport?.operations?.availableRooms || 0)}</strong><span>Bo'sh xonalar</span></div>
-                  <div><strong>{Number(dailyReport?.operations?.arrivals || 0)}</strong><span>Kelganlar</span></div>
-                  <div><strong>{Number(dailyReport?.operations?.departures || 0)}</strong><span>Ketganlar</span></div>
-                  <div><strong>{Number(dailyReport?.operations?.guests || 0)}</strong><span>Jami mehmon</span></div>
-                  <div><strong>{Number(dailyReport?.debt?.debtors || 0)}</strong><span>Qarzdorlar</span></div>
-                </div>
-              </section>
-
-              <div className="daily-report-columns">
-                <section className="daily-report-section">
-                  <h2>Daromad manbalari</h2>
-                  <div className="daily-report-rows">
-                    <div><span>Mehmon to'lovlari</span><b>{formatMoney(dailyReport?.revenue?.room)} so'm</b></div>
-                    <div><span>Ko'rsatilgan xizmatlar</span><b>{formatMoney(dailyReport?.revenue?.services)} so'm</b></div>
-                    <div><span>Zal buyurtmalari</span><b>{formatMoney(dailyReport?.revenue?.hall)} so'm</b></div>
-                  </div>
-                </section>
-                <section className="daily-report-section">
-                  <h2>To'lov turlari</h2>
-                  <div className="daily-report-rows">
-                    <div><span>Naqd</span><b>{formatMoney(dailyReport?.paymentTypes?.cash)} so'm</b></div>
-                    <div><span>Bank kartasi / Click</span><b>{formatMoney(dailyReport?.paymentTypes?.card)} so'm</b></div>
-                    <div><span>O'tkazma</span><b>{formatMoney(dailyReport?.paymentTypes?.transfer)} so'm</b></div>
-                  </div>
-                </section>
-              </div>
-
-              <section className="daily-report-section">
-                <div className="daily-report-section-head"><h2>Asosiy to'lovlar</h2><span>{dailyReport?.payments?.length || 0} ta operatsiya</span></div>
-                <table className="daily-report-table">
-                  <thead><tr><th>Vaqt</th><th>Manba / mijoz</th><th>To'lov turi</th><th>Summa</th></tr></thead>
-                  <tbody>{(dailyReport?.payments || []).map((payment, index) => (
-                    <tr key={`${payment.time}-${payment.source}-${index}`}><td>{payment.time}</td><td>{payment.source}</td><td>{PAYMENT_TYPE_LABELS[payment.type] || payment.type}</td><td>{formatMoney(payment.amount)} so'm</td></tr>
-                  ))}</tbody>
-                </table>
-              </section>
-
-              <section className="daily-report-section daily-report-expenses">
-                <div className="daily-report-section-head"><h2>Xarajatlar</h2><b>Jami: {formatMoney(dailyReport?.expenses?.total)} so'm</b></div>
-                <div className="daily-report-expense-grid">{(dailyReport?.expenses?.items || []).map((expense, index) => (
-                  <div key={`${expense.title}-${index}`}><span>{expense.title}</span><b>{formatMoney(expense.amount)} so'm</b></div>
-                ))}</div>
-              </section>
-
-              <section className="daily-report-debt">
-                <div><span>Undirilmagan qarzdorlik</span><strong>{formatMoney(dailyReport?.debt?.total)} so'm</strong></div>
-                <p>{Number(dailyReport?.debt?.debtors || 0)} nafar mehmon bo'yicha nazorat talab qilinadi.</p>
-              </section>
-
-              <footer className="daily-report-footer">
-                <span>Tayyorladi: Administrator __________________</span>
-                <span>Chop etildi: {dayjs().format("DD.MM.YYYY HH:mm")}</span>
-              </footer>
-            </div>
-          </div>
-          </Spin>
-        </Modal>
+        />
       </div>
     </div>
   );

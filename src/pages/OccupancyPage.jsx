@@ -6,6 +6,16 @@ import PageLoader from "../components/PageLoader";
 import "./occupancy.css";
 
 const DAY_COUNT = 14;
+
+const getRoomSortKey = (roomNumber) => {
+  const value = String(roomNumber || "").trim();
+  const match = value.match(/^(\d+)(.*)$/);
+
+  return {
+    number: match ? Number(match[1]) : Number.POSITIVE_INFINITY,
+    suffix: (match?.[2] || value).trim(),
+  };
+};
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CELL_WIDTH = 52;
 const ROW_HEIGHT = 24;
@@ -96,16 +106,21 @@ function OccupancyPage() {
       rooms
         .filter((room) => floor === undefined || room.floor === floor)
         .filter((room) => !korpus || room.korpus === korpus)
-        .sort(
-          (a, b) =>
-            String(a.korpus || "").localeCompare(String(b.korpus || ""), undefined, {
-              numeric: true,
-            }) ||
-            Number(a.floor || 0) - Number(b.floor || 0) ||
-            String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, {
-              numeric: true,
-            }),
-        ),
+        .sort((a, b) => {
+          const korpusOrder = String(a.korpus || "").localeCompare(
+            String(b.korpus || ""),
+            undefined,
+            { numeric: true, sensitivity: "base" },
+          );
+          if (korpusOrder !== 0) return korpusOrder;
+
+          const roomA = getRoomSortKey(a.roomNumber);
+          const roomB = getRoomSortKey(b.roomNumber);
+          return roomA.number - roomB.number || roomA.suffix.localeCompare(roomB.suffix, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+        }),
     [rooms, floor, korpus],
   );
 

@@ -48,6 +48,8 @@ const initialValues = {
   note: "",
   additionalGuests: [],
   checkInAt: dayjs(),
+  initialPaymentAmount: 0,
+  initialPaymentType: "naqd",
 };
 
 const normalizeUzDateInput = (value) => {
@@ -201,11 +203,11 @@ function GuestCheckinPage() {
         (room) =>
           Number(room.capacity || 0) - Number(room.activeGuestsCount || 0) > 0,
       )
-      .map((room) => ({
+        .map((room) => ({
         label: `${room.roomNumber} [${room.category === "bir_kishilik" ? "1 kishilik" : room.category}] - Bo'sh joy: ${Math.max(
           Number(room.capacity || 0) - Number(room.activeGuestsCount || 0),
           0,
-        )}/${Number(room.capacity || 0)} [${room.floor}-qavat]`,
+        )}/${Number(room.capacity || 0)} [${room.floor}-qavat · ${room.korpus || ""} korpus]`,
         value: room._id,
       }));
   }, [rooms, roomType]);
@@ -267,6 +269,10 @@ function GuestCheckinPage() {
         !isBookingMode && values.checkInAt
           ? values.checkInAt.toISOString()
           : undefined,
+      initialPaymentAmount: !isBookingMode
+        ? Number(values.initialPaymentAmount || 0)
+        : 0,
+      initialPaymentType: !isBookingMode ? values.initialPaymentType : undefined,
     };
     const firstGuest = {
       firstname: String(values.firstname || "").trim(),
@@ -415,7 +421,7 @@ function GuestCheckinPage() {
               />
             </Form.Item>
             <Form.Item name="roomType" label="Xona turi">
-              <Segmented
+              <Select
                 options={roomTypeSegmentOptions}
                 value={roomType}
                 onChange={(value) => {
@@ -427,7 +433,6 @@ function GuestCheckinPage() {
                     dailyRate: 0,
                   });
                 }}
-                block
               />
             </Form.Item>
 
@@ -439,6 +444,13 @@ function GuestCheckinPage() {
               <Select
                 placeholder="Xona tanlang"
                 options={roomOptions}
+                showSearch
+                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  String(option?.label || "")
+                    .toLowerCase()
+                    .includes(String(input || "").toLowerCase())
+                }
                 onChange={(value) => {
                   const selected = rooms.find((room) => room._id === value);
                   const currentGuestType =
@@ -641,6 +653,34 @@ function GuestCheckinPage() {
               placeholder="1-mehmon uchun eslatma"
             />
           </Form.Item>
+
+          {!isBookingMode && (
+            <div className="checkin-grid-top">
+              <Form.Item name="initialPaymentAmount" label="O'rnida to'lov (ixtiyoriy)">
+                <InputNumber
+                  min={0}
+                  style={{ width: "100%" }}
+                  addonAfter="so'm"
+                  formatter={(value) =>
+                    String(value || "").replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+                  }
+                  parser={(value) => String(value || "").replace(/[^\d]/g, "")}
+                  onKeyDown={blockNonNumericKeys}
+                />
+              </Form.Item>
+              <Form.Item name="initialPaymentType" label="To'lov usuli">
+                <Segmented
+                  block
+                  options={[
+                    { label: "Naqd", value: "naqd" },
+                    { label: "Plastik", value: "karta" },
+                    { label: "Click", value: "click" },
+                    { label: "Bank o'tkazmasi", value: "bank" },
+                  ]}
+                />
+              </Form.Item>
+            </div>
+          )}
 
           <Form.List name="additionalGuests">
             {(fields, { remove }) => (
