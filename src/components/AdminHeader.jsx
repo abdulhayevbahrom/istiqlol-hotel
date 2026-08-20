@@ -9,6 +9,7 @@ import {
 } from "../config/socketConfig";
 import smsIphoneSound from "../assets/sms_iphone.mp3";
 import { hasFullAccess } from "../utils/sectionAccess";
+import { useGetVipRequestsCountQuery } from "../store/employeeApi";
 
 const titles = {
   "/dashboard": "Dashboard",
@@ -31,17 +32,21 @@ function AdminHeader() {
   const token = useSelector((state) => state.auth.token);
   const audioRef = useRef(null);
   const previousPendingCountRef = useRef(null);
-  const isAdmin = hasFullAccess(user?.role);
-  const isGuestsRealtimePage =
-    location.pathname === "/guests-active" ||
-    location.pathname === "/guests-debtors";
-  const shouldConnectVipSocket =
-    isAdmin && Boolean(token) && !isGuestsRealtimePage;
+  const isAdmin = hasFullAccess(user?.role || user?.position);
+  const shouldConnectVipSocket = isAdmin && Boolean(token);
+  const { data: vipCountData } = useGetVipRequestsCountQuery("pending", {
+    skip: !shouldConnectVipSocket,
+  });
   const [pendingCount, setPendingCount] = useState(0);
   const title = titles[location.pathname] || "Admin Panel";
   const name = user
     ? `${user.firstname || ""} ${user.lastname || ""}`.trim()
     : "Guest";
+
+  useEffect(() => {
+    const count = Number(vipCountData?.innerData?.count ?? vipCountData?.count);
+    if (Number.isFinite(count)) setPendingCount(count);
+  }, [vipCountData]);
 
   useEffect(() => {
     audioRef.current = new Audio(smsIphoneSound);

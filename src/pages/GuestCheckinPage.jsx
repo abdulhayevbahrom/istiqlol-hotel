@@ -38,7 +38,7 @@ const initialValues = {
   bookedForDate: null,
   room: undefined,
   dailyRate: 0,
-  stayDays: 1,
+  checkoutDate: null,
   firstname: "",
   lastname: "",
   passport: "",
@@ -111,6 +111,13 @@ const blockNonNumericKeys = (event) => {
   if (!/^\d$/.test(event.key)) {
     event.preventDefault();
   }
+};
+
+const calculateStayDays = (checkInAt, checkoutDate) => {
+  const checkInDay = dayjs(checkInAt).startOf("day");
+  const checkoutDay = dayjs(checkoutDate).startOf("day");
+  const days = checkoutDay.diff(checkInDay, "day");
+  return Math.max(days, 1);
 };
 
 function GuestCheckinPage() {
@@ -231,7 +238,7 @@ function GuestCheckinPage() {
       roomType: nextRoomType,
       room: preferredRoomIsFree ? pref.roomId : undefined,
       dailyRate: Number(pref.dailyRate || 0),
-      stayDays: 1,
+      checkoutDate: null,
       firstname: pref.firstname || "",
       lastname: pref.lastname || "",
       passport: pref.passport || "",
@@ -264,7 +271,9 @@ function GuestCheckinPage() {
           : undefined,
       room: values.room,
       dailyRate: Number(values.dailyRate || 0),
-      stayDays: Number(values.stayDays || 1),
+      stayDays: isBookingMode
+        ? Number(values.stayDays || 1)
+        : calculateStayDays(values.checkInAt, values.checkoutDate),
       checkInAt:
         !isBookingMode && values.checkInAt
           ? values.checkInAt.toISOString()
@@ -511,20 +520,6 @@ function GuestCheckinPage() {
             </Form.Item>
 
             <div className="checkin-room-extra-block">
-            <Form.Item
-              name="stayDays"
-              label="Necha kun qoladi"
-              rules={[{ required: true, message: "Kunlar soni majburiy" }]}
-            >
-                <InputNumber
-                  min={1}
-                  style={{ width: "100%" }}
-                  addonAfter="kun"
-                  parser={(value) => String(value || "").replace(/[^\d]/g, "")}
-                  onKeyDown={blockNonNumericKeys}
-                />
-              </Form.Item>
-
               <div className="checkin-room-extra-second">
                 {isBookingMode ? (
                   <Form.Item
@@ -561,6 +556,23 @@ function GuestCheckinPage() {
                         format="DD.MM.YYYY HH:mm"
                         placeholder="Sana va vaqt tanlang"
                         allowClear={false}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="checkoutDate"
+                      label="Qachongacha qoladi"
+                      rules={[
+                        { required: true, message: "Chiqish sanasi majburiy" },
+                      ]}
+                    >
+                      <DatePicker
+                        style={{ width: "100%" }}
+                        format="DD.MM.YYYY"
+                        placeholder="Chiqish sanasini tanlang"
+                        disabledDate={(current) =>
+                          current &&
+                          current.startOf("day").isBefore(dayjs().startOf("day"))
+                        }
                       />
                     </Form.Item>
                     <Form.Item

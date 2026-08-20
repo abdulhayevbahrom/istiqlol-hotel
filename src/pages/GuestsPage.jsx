@@ -54,6 +54,38 @@ import {
   preventInvalidAmountPaste,
 } from "../utils/numberFormat";
 import dayjs from "dayjs";
+
+const getCurrentStayDay = (checkInAt, checkoutTime = "12:00") => {
+  if (!checkInAt) return 1;
+  const [checkoutHour = 12, checkoutMinute = 0] = String(checkoutTime)
+    .split(":")
+    .map(Number);
+  const today = dayjs();
+  const checkoutPassed =
+    today.hour() > checkoutHour ||
+    (today.hour() === checkoutHour && today.minute() >= checkoutMinute);
+  return Math.max(
+    today.startOf("day").diff(dayjs(checkInAt).startOf("day"), "day") +
+      (checkoutPassed ? 1 : 0),
+    1,
+  );
+};
+
+const getStayedDays = (checkInAt, checkOutAt, checkoutTime = "12:00") => {
+  if (!checkInAt || !checkOutAt) return 1;
+  const [checkoutHour = 12, checkoutMinute = 0] = String(checkoutTime)
+    .split(":")
+    .map(Number);
+  const checkOut = dayjs(checkOutAt);
+  const checkoutPassed =
+    checkOut.hour() > checkoutHour ||
+    (checkOut.hour() === checkoutHour && checkOut.minute() > checkoutMinute);
+  return Math.max(
+    checkOut.startOf("day").diff(dayjs(checkInAt).startOf("day"), "day") +
+      (checkoutPassed ? 1 : 0),
+    1,
+  );
+};
 import {
   acquireSocketConnection,
   releaseSocketConnection,
@@ -1061,7 +1093,7 @@ function GuestsPage({ tab = "active" }) {
                     <th>F.I.SH</th>
                     <th>Passport</th>
                     <th>Xona</th>
-                    <th>Kunlar</th>
+                    <th>{tab === "history" ? "Kunlar" : "Yashash muddati"}</th>
                     <th>Kunlik</th>
                     <th>Jami</th>
                     <th>To'langan</th>
@@ -1115,9 +1147,26 @@ function GuestsPage({ tab = "active" }) {
                           {guest.room?.floor ? ` · ${guest.room.floor}-qavat` : ""}
                         </span>
                       </td>
-                      <td data-label="Kunlar">
-                        {guest.billableDays || guest.stayDays || 1} /{" "}
-                        {guest.stayDays || 1}
+                      <td data-label={tab === "history" ? "Kunlar" : "Yashash muddati"}>
+                        <div className="guest-days-cell">
+                          <strong>
+                            {tab === "history"
+                              ? getStayedDays(
+                                  guest.checkInAt,
+                                  guest.checkOutAt,
+                                  hotelSettings?.checkoutTime || "12:00",
+                                )
+                              : guest.stayDays || 1} kun
+                          </strong>
+                          <small>
+                            {tab === "history"
+                              ? ""
+                              : `Bugun ${getCurrentStayDay(
+                                  guest.checkInAt,
+                                  hotelSettings?.checkoutTime || "12:00",
+                                )}-kun`}
+                          </small>
+                        </div>
                       </td>
                       <td data-label="Kunlik">
                         {Number(guest.dailyRate || 0).toLocaleString()}

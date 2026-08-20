@@ -477,10 +477,10 @@ function DashboardPage() {
           </div>
           <div className="dashboard-kpi-label">Faol mehmonlar</div>
           <div className="dashboard-kpi-value">
-            {Number(kpis?.activeGuests || 0)}
+            {Number(kpis?.activeGuests || 0)} / {Number(kpis?.totalCapacity || 0)}
           </div>
           <div className="dashboard-kpi-meta neutral">
-            {Number(kpis?.bookedGuests || 0)} ta bron mavjud
+            faol mehmonlar / barcha xonalar sig'imi
           </div>
         </article>
 

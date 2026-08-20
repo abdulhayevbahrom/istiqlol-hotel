@@ -392,7 +392,7 @@ function ReportsPage() {
     content: () => dailyReportRef.current,
     documentTitle: `Kunlik-hisobot-${dailyReportDate.format("YYYY-MM-DD")}`,
     pageStyle: `
-      @page { size: A4 portrait; margin: 10mm; }
+      @page { size: A4 landscape; margin: 8mm; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     `,
   });
@@ -611,21 +611,14 @@ function ReportsPage() {
                   >
                     <div className="daily-report-preview-wrap">
                       <div ref={dailyReportRef} className="daily-report-sheet">
-                        <header className="daily-report-head">
-                          <div>
-                            <div className="daily-report-brand">
-                              {hotelName}
-                            </div>
-                            <div className="daily-report-address">
-                              Mehmonxona boshqaruv tizimi
-                            </div>
-                          </div>
-                          <div className="daily-report-title">
-                            <h1>KUNLIK HISOBOT</h1>
-                            <strong>
-                              {dailyReportDate.format("DD MMMM YYYY")}
-                            </strong>
-                          </div>
+                        <header className="daily-report-excel-head">
+                          <strong>О Т Ч Е Т</strong>
+                          <span>
+                            наличные проживания в гостинице "{hotelName}"
+                          </span>
+                          <em>
+                            " {dailyReportDate.format("DD")} " {dailyReportDate.format("MMMM YYYY")}г.
+                          </em>
                         </header>
 
                         <section className="daily-report-section">
@@ -634,13 +627,37 @@ function ReportsPage() {
                             <span>{dailyGuestRows.length} ta xona</span>
                           </div>
                           <table className="daily-report-table daily-report-guest-table">
+                            <colgroup>
+                              <col className="report-col-prepayment" />
+                              <col className="report-col-debt" />
+                              <col className="report-col-room" />
+                              <col className="report-col-count" />
+                              <col className="report-col-daily" />
+                              <col className="report-col-cash" />
+                              <col className="report-col-card" />
+                              <col className="report-col-transfer" />
+                              <col className="report-col-total" />
+                              <col className="report-col-name" />
+                              <col className="report-col-prepayment-end" />
+                              <col className="report-col-debt-end" />
+                            </colgroup>
                             <thead>
                               <tr>
-                                <th>FIO</th>
-                                <th>Xona</th>
-                                <th>Kunlik narx</th>
-                                <th>Eski qarz</th>
-                                <th>Jami qarz</th>
+                                <th rowSpan={2}>Предоплата</th>
+                                <th rowSpan={2}>Задолженность</th>
+                                <th rowSpan={2}>№ комнаты</th>
+                                <th rowSpan={2}>Кол-во чел.</th>
+                                <th rowSpan={2}>Оплата за сутки</th>
+                                <th colSpan={3}>Оплата наличными</th>
+                                <th rowSpan={2}>Всего</th>
+                                <th rowSpan={2}>ФИО</th>
+                                <th rowSpan={2}>Предоплата</th>
+                                <th rowSpan={2}>Задолженность</th>
+                              </tr>
+                              <tr>
+                                <th>Наличия</th>
+                                <th>Пластиковая карта</th>
+                                <th>Банковский перевод</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -648,21 +665,44 @@ function ReportsPage() {
                                 <tr
                                   key={`${guest.roomNumber}-${guest.fullName}-${index}`}
                                 >
-                                  <td>{guest.fullName}</td>
+                                  <td>{formatMoney(guest.prepayment)}</td>
+                                  <td>{formatMoney(guest.oldDebt)}</td>
                                   <td>{formatRoomLabel(guest)}</td>
-                                  <td>{formatMoney(guest.dailyRate)} so'm</td>
-                                  <td>{formatMoney(guest.oldDebt)} so'm</td>
-                                  <td>{formatMoney(guest.totalDebt)} so'm</td>
+                                  <td>{guest.guestCount}</td>
+                                  <td>{formatMoney(guest.dailyRate)}</td>
+                                  <td>{formatMoney(guest.cash)}</td>
+                                  <td>{formatMoney(guest.card)}</td>
+                                  <td>{formatMoney(guest.transfer)}</td>
+                                  <td>{formatMoney((guest.cash || 0) + (guest.card || 0) + (guest.transfer || 0))}</td>
+                                  <td>{guest.fullName}</td>
+                                  <td>{formatMoney(guest.prepayment)}</td>
+                                  <td>{formatMoney(guest.totalDebt)}</td>
                                 </tr>
                               ))}
                               {!dailyGuestRows.length ? (
                                 <tr>
                                   <td
-                                    colSpan={6}
+                                    colSpan={12}
                                     style={{ textAlign: "center" }}
                                   >
                                     Aktiv mijozlar topilmadi
                                   </td>
+                                </tr>
+                              ) : null}
+                              {dailyGuestRows.length ? (
+                                <tr className="daily-report-total-row">
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.prepayment || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.oldDebt || 0), 0))}</td>
+                                  <td>Всего</td>
+                                  <td>{dailyGuestRows.reduce((sum, row) => sum + Number(row.guestCount || 0), 0)}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.dailyRate || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.cash || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.card || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.transfer || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.cash || 0) + Number(row.card || 0) + Number(row.transfer || 0), 0))}</td>
+                                  <td />
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.prepayment || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.totalDebt || 0), 0))}</td>
                                 </tr>
                               ) : null}
                             </tbody>

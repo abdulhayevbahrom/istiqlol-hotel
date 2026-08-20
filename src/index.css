@@ -19,6 +19,50 @@ body {
   margin: 0;
 }
 
+.install-prompt {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(440px, calc(100vw - 24px));
+  padding: 13px 14px;
+  border: 1px solid var(--hotel-border);
+  border-radius: 12px;
+  background: #fffaf1;
+  box-shadow: 0 12px 30px rgba(45, 55, 72, 0.18);
+}
+
+.install-prompt div {
+  display: grid;
+  gap: 3px;
+}
+
+.install-prompt span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.install-prompt button {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--hotel-gold);
+  color: var(--hotel-navy);
+  cursor: pointer;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.install-prompt .install-prompt-close {
+  padding: 4px 7px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 18px;
+}
+
 a {
   color: inherit;
 }
@@ -1071,7 +1115,7 @@ a {
 }
 
 .checkin-room-extra-block {
-  grid-column: 3;
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
@@ -1083,7 +1127,8 @@ a {
 }
 
 .checkin-room-extra-second {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   align-items: flex-start;
 }
@@ -1511,7 +1556,7 @@ a {
   }
 
   .checkin-room-extra-second {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .checkin-vip-item .ant-checkbox-wrapper {
@@ -1577,6 +1622,19 @@ a {
   flex-direction: column;
     gap: 2px;
   }
+
+.guest-days-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.guest-days-cell small {
+  color: #6b7280;
+  font-size: 12px;
+}
 
 
 @media (max-width: 700px) {

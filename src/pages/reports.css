@@ -169,6 +169,28 @@
   padding-bottom: 14px;
   border-bottom: 2px solid #263a58;
 }
+.daily-report-excel-head {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 30px 30px 30px;
+  border: 0;
+  color: #111;
+  font-family: "Segoe UI", Arial, sans-serif;
+  text-align: center;
+}
+.daily-report-excel-head strong,
+.daily-report-excel-head span,
+.daily-report-excel-head em {
+  grid-column: 1;
+  display: grid;
+  place-items: center;
+  border-bottom: 0;
+  font-size: 16px;
+  font-style: normal;
+}
+.daily-report-excel-head strong { font-size: 20px; letter-spacing: 5px; }
+.daily-report-excel-head em { border-bottom: 0; }
 
 .daily-report-brand { color: #263a58; font-size: 23px; font-weight: 900; letter-spacing: .5px; }
 .daily-report-address { margin-top: 4px; color: #6b7280; font-size: 10px; }
@@ -208,50 +230,76 @@
 .daily-report-section-head { display: flex; justify-content: space-between; align-items: center; }
 .daily-report-section-head > span, .daily-report-section-head > b { color: #7c6741; font-size: 10px; }
 .daily-report-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
-.daily-report-table th { padding: 11px 12px; color: #fff; background: #263a58; text-align: left; font-size: 11px; }
-.daily-report-table th:last-child, .daily-report-table td:last-child { text-align: right; }
-.daily-report-table td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; }
-.daily-report-table tbody tr:nth-child(even) { background: #f8fafc; }
+.daily-report-table th { padding: 8px 5px; color: #111; background: #fff; border: 1px solid #111; text-align: center; font-family: "Segoe UI", Arial, sans-serif; font-size: 11px; line-height: 1.1; }
+.daily-report-table th:last-child, .daily-report-table td:last-child { text-align: center; }
+.daily-report-table td { padding: 6px 5px; border: 1px solid #111; text-align: center; }
+.daily-report-table tbody tr:nth-child(even) { background: #fff; }
+.daily-report-total-row { font-weight: 700; }
 .daily-report-guest-table {
-  font-size: 11px;
+  font-size: 10px;
 }
-.daily-report-guest-table th:nth-child(1),
-.daily-report-guest-table td:nth-child(1) {
-  width: 34%;
-  text-align: left;
-}
-.daily-report-guest-table th:nth-child(2),
-.daily-report-guest-table td:nth-child(2) {
-  width: 18%;
+.daily-report-guest-table .report-col-prepayment { width: 7%; }
+.daily-report-guest-table .report-col-prepayment-end { width: 5%; }
+.daily-report-guest-table .report-col-debt { width: 9%; }
+.daily-report-guest-table .report-col-debt-end { width: 10%; }
+.daily-report-guest-table .report-col-room { width: 7%; }
+.daily-report-guest-table .report-col-count { width: 6%; }
+.daily-report-guest-table .report-col-daily { width: 8%; }
+.daily-report-guest-table .report-col-cash,
+.daily-report-guest-table .report-col-card { width: 7%; }
+.daily-report-guest-table .report-col-transfer { width: 8%; }
+.daily-report-guest-table .report-col-total { width: 7%; }
+.daily-report-guest-table .report-col-name { width: 20%; }
+.daily-report-guest-table .report-col-debt-end { width: 10%; }
+.daily-report-guest-table th,
+.daily-report-guest-table td {
+  padding: 7px 6px;
+  vertical-align: middle;
   white-space: nowrap;
-}
-.daily-report-guest-table th:nth-child(3),
-.daily-report-guest-table td:nth-child(3) {
-  width: 16%;
-  white-space: nowrap;
-  text-align: center;
-}
-.daily-report-guest-table th:nth-child(4),
-.daily-report-guest-table td:nth-child(4) {
-  width: 16%;
-  text-align: center;
-  white-space: nowrap;
-}
-.daily-report-guest-table th:nth-child(5),
-.daily-report-guest-table td:nth-child(5) {
-  width: 16%;
-  white-space: nowrap;
-  text-align: center;
-}
-.daily-report-guest-table td:nth-child(3),
-.daily-report-guest-table td:nth-child(4),
-.daily-report-guest-table td:nth-child(5) {
-  text-align: center;
-}
-.daily-report-guest-table td:nth-child(2) {
-  text-align: left;
   font-variant-numeric: tabular-nums;
 }
+.daily-report-guest-table th {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.daily-report-guest-table th[colspan] {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.daily-report-guest-table th:nth-child(1), .daily-report-guest-table td:nth-child(1) { width: 7%; }
+.daily-report-guest-table th:nth-child(2), .daily-report-guest-table td:nth-child(2) { width: 7%; }
+.daily-report-guest-table th:nth-child(3), .daily-report-guest-table td:nth-child(3) { width: 8%; }
+.daily-report-guest-table th:nth-child(4), .daily-report-guest-table td:nth-child(4) { width: 7%; }
+.daily-report-guest-table th:nth-child(5), .daily-report-guest-table td:nth-child(5) { width: 9%; }
+.daily-report-guest-table th:nth-child(6), .daily-report-guest-table td:nth-child(6) { width: 7%; }
+.daily-report-guest-table th:nth-child(7), .daily-report-guest-table td:nth-child(7) { width: 8%; }
+.daily-report-guest-table th:nth-child(8), .daily-report-guest-table td:nth-child(8) { width: 8%; }
+.daily-report-guest-table th:nth-child(9), .daily-report-guest-table td:nth-child(9) { width: 18%; white-space: pre-line; overflow-wrap: anywhere; }
+.daily-report-guest-table th:nth-child(10), .daily-report-guest-table td:nth-child(10) { width: 6%; }
+.daily-report-guest-table th:nth-child(11), .daily-report-guest-table td:nth-child(11) { width: 9%; }
+.daily-report-guest-table th:nth-child(9), .daily-report-guest-table td:nth-child(9) { text-align: left; }
+.daily-report-guest-table th:last-child {
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+.daily-report-guest-table th:nth-child(9),
+.daily-report-guest-table td:nth-child(9) {
+  text-align: center;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.daily-report-guest-table th:nth-child(10),
+.daily-report-guest-table td:nth-child(10) {
+  text-align: left;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.daily-report-guest-table th:nth-child(3),
+.daily-report-guest-table td:nth-child(3),
+.daily-report-guest-table th:nth-child(4),
+.daily-report-guest-table td:nth-child(4) { text-align: center; }
 .daily-report-guest-table .room-label-number {
   font-weight: 800;
 }
@@ -280,8 +328,12 @@
   }
 
   .daily-report-table {
-    font-size: 11px;
+    font-size: 10px;
   }
+
+  .daily-report-excel-head { grid-template-columns: 1fr; grid-template-rows: 25px 25px 25px; }
+  .daily-report-excel-head strong, .daily-report-excel-head span, .daily-report-excel-head em { font-size: 12px; }
+  .daily-report-excel-head strong { font-size: 16px; }
 
   .daily-report-summary-grid {
     display: flex;
