@@ -38,6 +38,7 @@ const iconByPath = {
   "/occupancy": FiCalendar,
   "/guest-checkin": FiUserCheck,
   "/guests-active": FiLayers,
+  "/groups": FiUsers,
   "/guests-history": FiBookOpen,
   "/guests-debtors": FiDollarSign,
   "/attendance": FiCalendar,

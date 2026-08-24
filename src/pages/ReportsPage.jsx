@@ -330,6 +330,7 @@ function ReportsPage() {
   const sections = reportData?.sections || {};
   const dailyReport = dailyResponse?.innerData;
   const dailyGuestRows = dailyReport?.guests || [];
+  const dailyExpenses = dailyReport?.expenses?.items || [];
 
   const quickHighlights = useMemo(
     () => [
@@ -375,15 +376,9 @@ function ReportsPage() {
   const formatRoomLabel = (guest) => {
     const roomNumber = guest?.roomNumber ? String(guest.roomNumber) : "-";
     const korpus = guest?.korpus ? `[${guest.korpus}]` : "[-]";
-    const floor =
-      guest?.floor !== undefined &&
-      guest?.floor !== null &&
-      guest?.floor !== "-"
-        ? `[${guest.floor}-qavat]`
-        : "[-]";
     return (
       <>
-        <span className="room-label-number">{roomNumber}</span> {korpus} {floor}
+        <span className="room-label-number">{roomNumber}</span> {korpus}
       </>
     );
   };
@@ -638,6 +633,7 @@ function ReportsPage() {
                               <col className="report-col-transfer" />
                               <col className="report-col-total" />
                               <col className="report-col-name" />
+                              <col className="report-col-name" />
                               <col className="report-col-prepayment-end" />
                               <col className="report-col-debt-end" />
                             </colgroup>
@@ -651,6 +647,7 @@ function ReportsPage() {
                                 <th colSpan={3}>Оплата наличными</th>
                                 <th rowSpan={2}>Всего</th>
                                 <th rowSpan={2}>ФИО</th>
+                                <th rowSpan={2}>Tashkilot</th>
                                 <th rowSpan={2}>Предоплата</th>
                                 <th rowSpan={2}>Задолженность</th>
                               </tr>
@@ -665,8 +662,8 @@ function ReportsPage() {
                                 <tr
                                   key={`${guest.roomNumber}-${guest.fullName}-${index}`}
                                 >
-                                  <td>{formatMoney(guest.prepayment)}</td>
-                                  <td>{formatMoney(guest.oldDebt)}</td>
+                                  <td>{formatMoney(guest.openingPrepayment)}</td>
+                                  <td>{formatMoney(guest.openingDebt)}</td>
                                   <td>{formatRoomLabel(guest)}</td>
                                   <td>{guest.guestCount}</td>
                                   <td>{formatMoney(guest.dailyRate)}</td>
@@ -675,8 +672,9 @@ function ReportsPage() {
                                   <td>{formatMoney(guest.transfer)}</td>
                                   <td>{formatMoney((guest.cash || 0) + (guest.card || 0) + (guest.transfer || 0))}</td>
                                   <td>{guest.fullName}</td>
-                                  <td>{formatMoney(guest.prepayment)}</td>
-                                  <td>{formatMoney(guest.totalDebt)}</td>
+                                  <td>{guest.organization || "-"}</td>
+                                  <td>{formatMoney(guest.closingPrepayment)}</td>
+                                  <td>{formatMoney(guest.closingDebt)}</td>
                                 </tr>
                               ))}
                               {!dailyGuestRows.length ? (
@@ -691,8 +689,8 @@ function ReportsPage() {
                               ) : null}
                               {dailyGuestRows.length ? (
                                 <tr className="daily-report-total-row">
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.prepayment || 0), 0))}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.oldDebt || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.openingPrepayment || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.openingDebt || 0), 0))}</td>
                                   <td>Всего</td>
                                   <td>{dailyGuestRows.reduce((sum, row) => sum + Number(row.guestCount || 0), 0)}</td>
                                   <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.dailyRate || 0), 0))}</td>
@@ -701,8 +699,72 @@ function ReportsPage() {
                                   <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.transfer || 0), 0))}</td>
                                   <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.cash || 0) + Number(row.card || 0) + Number(row.transfer || 0), 0))}</td>
                                   <td />
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.prepayment || 0), 0))}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.totalDebt || 0), 0))}</td>
+                                  <td />
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))}</td>
+                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingDebt || 0), 0))}</td>
+                                </tr>
+                              ) : null}
+                            </tbody>
+                          </table>
+                        </section>
+
+                        <section className="daily-report-section">
+                          <div className="daily-report-section-head">
+                            <h2>Kunlik xarajatlar</h2>
+                            <span>{dailyExpenses.length} ta xarajat</span>
+                          </div>
+                          <table className="daily-report-table daily-report-expense-table">
+                            <colgroup>
+                              <col className="report-col-name" />
+                              <col className="report-col-room" />
+                              <col className="report-col-count" />
+                              <col className="report-col-daily" />
+                              <col className="report-col-total" />
+                            </colgroup>
+                            <thead>
+                              <tr>
+                                <th>Nomi</th>
+                                <th>Kategoriya</th>
+                                <th>To'lov turi</th>
+                                <th>Summa</th>
+                                <th>Izoh</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {dailyExpenses.map((expense, index) => (
+                                <tr key={`${expense.title}-${expense.category}-${index}`}>
+                                  <td>{expense.title || "-"}</td>
+                                  <td>{expense.category || "-"}</td>
+                                  <td>{expense.paymentType || "-"}</td>
+                                  <td>{formatMoney(expense.amount)}</td>
+                                  <td>{expense.note || "-"}</td>
+                                </tr>
+                              ))}
+                              {!dailyExpenses.length ? (
+                                <tr>
+                                  <td
+                                    colSpan={5}
+                                    style={{ textAlign: "center" }}
+                                  >
+                                    Tanlangan sana uchun xarajat topilmadi
+                                  </td>
+                                </tr>
+                              ) : null}
+                              {dailyExpenses.length ? (
+                                <tr className="daily-report-total-row">
+                                  <td>Jami</td>
+                                  <td />
+                                  <td />
+                                  <td>
+                                    {formatMoney(
+                                      dailyExpenses.reduce(
+                                        (sum, expense) =>
+                                          sum + Number(expense.amount || 0),
+                                        0,
+                                      ),
+                                    )}
+                                  </td>
+                                  <td />
                                 </tr>
                               ) : null}
                             </tbody>
@@ -711,6 +773,28 @@ function ReportsPage() {
 
                         <section className="daily-report-section daily-report-summary-grid">
                           <div className="daily-report-rows">
+                            <div className="daily-report-rows-primary">
+                              <div
+                                className="daily-report-prepayment-card"
+                                style={{
+                                  padding: "10px 12px",
+                                  borderRadius: "12px",
+                                  minHeight: "72px",
+                                }}
+                              >
+                                <span>Predoplata</span>
+                                <b style={{ fontSize: "18px", lineHeight: 1.1 }}>
+                                  {formatMoney(
+                                    dailyGuestRows.reduce(
+                                      (sum, row) =>
+                                        sum + Number(row.closingPrepayment || 0),
+                                      0,
+                                    ),
+                                  )}{" "}
+                                  so'm
+                                </b>
+                              </div>
+                            </div>
                             <div>
                               <span>Jami aktiv xonalar</span>
                               <b>
@@ -733,8 +817,6 @@ function ReportsPage() {
                                 {Number(dailyReport?.debt?.debtors || 0)} ta
                               </b>
                             </div>
-                          </div>
-                          <div className="daily-report-rows">
                             <div>
                               <span>Jami qarz</span>
                               <b>

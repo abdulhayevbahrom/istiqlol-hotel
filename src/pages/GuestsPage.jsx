@@ -91,14 +91,12 @@ import {
   releaseSocketConnection,
 } from "../config/socketConfig";
 import PageLoader from "../components/PageLoader";
-import { hasFullAccess } from "../utils/sectionAccess";
 
 const { RangePicker } = DatePicker;
 const GUESTS_PAGE_SIZE = 20;
 
 const paymentTypeOptions = [
   { label: "Naqd", value: "naqd" },
-  { label: "Click", value: "click" },
   { label: "Bank", value: "bank" },
   { label: "Karta", value: "karta" },
 ];
@@ -207,7 +205,7 @@ function GuestsPage({ tab = "active" }) {
   const { data: roomsData } = useGetRoomsQuery();
   const hotelSettings = settingsData?.innerData || {};
   const hotelName = hotelSettings?.hotelName || "Mehmonxona nomi";
-  const canDeleteGuest = String(user?.role || "").toLowerCase() === "manager";
+  const canDeleteGuest = true;
   const [paymentForm] = Form.useForm();
   const [serviceForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -230,8 +228,7 @@ function GuestsPage({ tab = "active" }) {
     endDate: "",
   });
 
-  const canManageVip = hasFullAccess(user?.role);
-  const shouldLoadVipRequests = canManageVip && tab === "active";
+  const shouldLoadVipRequests = tab === "active";
   const { data: vipRequestsData, refetch: refetchVipRequests } =
     useGetVipRequestsQuery("pending", {
       skip: !shouldLoadVipRequests,
@@ -534,6 +531,7 @@ function GuestsPage({ tab = "active" }) {
       guestId: historyGuest._id,
     });
     paymentEditForm.setFieldsValue({
+      amount: Number(payment?.amount || 0),
       type: payment?.type || "naqd",
       note: payment?.note || "",
     });
@@ -632,11 +630,13 @@ function GuestsPage({ tab = "active" }) {
       const result = await updateGuestPayment({
         id: editingPayment.guestId,
         paymentIndex: editingPayment.index,
+        amount: Number(values.amount || 0),
         type: values.type,
         note: String(values.note || "").trim(),
       }).unwrap();
       setHistoryGuest(result?.innerData || historyGuest);
-      toast.success(result?.message || "To'lov turi yangilandi");
+      refetchGuests();
+      toast.success(result?.message || "To'lov yangilandi");
       closePaymentEditModal();
     } catch (err) {
       toast.error(err?.data?.message || "To'lovni tahrirlashda xatolik");
@@ -898,23 +898,30 @@ function GuestsPage({ tab = "active" }) {
     if (start && end && start.isValid() && end.isValid()) return [start, end];
     return null;
   }, [filters.endDate, filters.startDate]);
-  const activeSelectableGuests = useMemo(
-    () => guests.filter((guest) => guest.status === "active"),
+  const checkoutSelectableGuests = useMemo(
+    () =>
+      guests.filter(
+        (guest) => guest.status === "active" || (guest.status === "booked" && guest.group),
+      ),
     [guests],
   );
   const selectedGuestCount = selectedGuestIds.length;
   const selectedPaymentGuests = useMemo(
-    () => activeSelectableGuests.filter((guest) => selectedGuestIds.includes(guest._id)),
-    [activeSelectableGuests, selectedGuestIds],
+    () =>
+      checkoutSelectableGuests.filter(
+        (guest) => guest.status === "active" && selectedGuestIds.includes(guest._id),
+      ),
+    [checkoutSelectableGuests, selectedGuestIds],
   );
+  const hasBookedGroupGuestsSelected = selectedPaymentGuests.length !== selectedGuestIds.length;
   const selectedRoomIds = new Set(
     selectedPaymentGuests.map((guest) => String(guest.room?._id || guest.room || "")),
   );
   const hasGuestsFromMultipleRooms = selectedRoomIds.size > 1;
   const allVisibleSelected =
     tab === "active" &&
-    activeSelectableGuests.length > 0 &&
-    activeSelectableGuests.every((guest) => selectedGuestIds.includes(guest._id));
+    checkoutSelectableGuests.length > 0 &&
+    checkoutSelectableGuests.every((guest) => selectedGuestIds.includes(guest._id));
 
   return (
     <div className="employee-page guests-page">
@@ -1047,14 +1054,14 @@ function GuestsPage({ tab = "active" }) {
                   onChange={(e) => {
                     setSelectedGuestIds(
                       e.target.checked
-                        ? activeSelectableGuests.map((guest) => guest._id)
+                        ? checkoutSelectableGuests.map((guest) => guest._id)
                         : [],
                     );
                   }}
                 >
                   Barchasi  |
                   <span className="guests-bulk-count">
-                    Jami: {activeSelectableGuests.length}
+                    Jami: {pagination.total || 0}
                   </span>
                 </Checkbox>
                 <div style={{display: "flex", gap: "10px"}}>
@@ -1070,11 +1077,14 @@ function GuestsPage({ tab = "active" }) {
                   className="hotel-primary-btn"
                   disabled={
                     !selectedGuestIds.length ||
+                    hasBookedGroupGuestsSelected ||
                     hasGuestsFromMultipleRooms ||
                     paying
                   }
                   title={
-                    hasGuestsFromMultipleRooms
+                    hasBookedGroupGuestsSelected
+                      ? "Guruh bronlari uchun to'lov Guruhlar bo'limida qilinadi"
+                      : hasGuestsFromMultipleRooms
                       ? "Umumiy to'lov faqat bitta xonadagi mijozlar uchun"
                       : "Umumiy to'lov"
                   }
@@ -1122,7 +1132,10 @@ function GuestsPage({ tab = "active" }) {
                                   : prev.filter((id) => id !== guest._id),
                               );
                             }}
-                            disabled={guest.status !== "active"}
+                            disabled={
+                              guest.status !== "active" &&
+                              !(guest.status === "booked" && guest.group)
+                            }
                           />
                         </td>
                       ) : null}
@@ -1133,6 +1146,9 @@ function GuestsPage({ tab = "active" }) {
                           </strong>
                           {guest.email ? (
                             <small>{guest.email}</small>
+                          ) : null}
+                          {guest.group ? (
+                            <Tag color="cyan">Guruh: {guest.group.name}</Tag>
                           ) : null}
                         </div>
                       </td>
@@ -1353,7 +1369,7 @@ function GuestsPage({ tab = "active" }) {
                               overlayClassName="hotel-popconfirm"
                             >
                               <button
-                                className="icon-btn danger"
+                                className="icon-btn"
                                 title="O'chirish"
                               >
                                 <FiTrash2 size={16} />
@@ -1920,7 +1936,7 @@ function GuestsPage({ tab = "active" }) {
           destroyOnHidden
           width={440}
           rootClassName="employee-modal-theme"
-          title="To'lov turini tahrirlash"
+          title="To'lovni tahrirlash"
         >
           <Form
             form={paymentEditForm}
@@ -1928,6 +1944,22 @@ function GuestsPage({ tab = "active" }) {
             onFinish={onPaymentEditSubmit}
             requiredMark={false}
           >
+            <Form.Item
+              name="amount"
+              label="To'lov summasi"
+              rules={[{ required: true, message: "To'lov summasi majburiy" }]}
+            >
+              <InputNumber
+                min={0}
+                style={{ width: "100%" }}
+                addonAfter="so'm"
+                formatter={(value) =>
+                  String(value || "").replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+                }
+                parser={(value) => String(value || "").replace(/[^\d]/g, "")}
+                onKeyDown={blockNonIntegerKeys}
+              />
+            </Form.Item>
             <Form.Item
               name="type"
               label="To'lov turi"

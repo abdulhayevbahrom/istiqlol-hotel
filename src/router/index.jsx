@@ -6,6 +6,7 @@ import RoomsPage from "../pages/RoomsPage";
 import OccupancyPage from "../pages/OccupancyPage";
 import GuestsPage from "../pages/GuestsPage";
 import GuestCheckinPage from "../pages/GuestCheckinPage";
+import GroupsPage from "../pages/GroupsPage";
 import FinancePage from "../pages/FinancePage";
 import ReportsPage from "../pages/ReportsPage";
 import AttendancePage from "../pages/AttendancePage";
@@ -81,6 +82,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireSection section="guests-active">
             <GuestsPage tab="active" />
+          </RequireSection>
+        ),
+      },
+      {
+        path: "groups",
+        element: (
+          <RequireSection section="groups">
+            <GroupsPage />
           </RequireSection>
         ),
       },

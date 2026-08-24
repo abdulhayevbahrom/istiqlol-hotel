@@ -217,6 +217,18 @@
 .daily-report-summary-grid > .daily-report-rows {
   min-width: 0;
 }
+.daily-report-rows-primary {
+  flex: 1.4 1 0;
+  min-width: 0;
+}
+.daily-report-prepayment-card {
+  min-width: 0;
+  width: 100%;
+}
+.daily-report-prepayment-card span,
+.daily-report-prepayment-card b {
+  white-space: nowrap;
+}
 .daily-report-kpis { display: grid; grid-template-columns: repeat(6, 1fr); border: 1px solid #dfe4ea; border-radius: 7px; overflow: hidden; }
 .daily-report-kpis > div { display: grid; gap: 3px; padding: 9px 6px; text-align: center; border-right: 1px solid #dfe4ea; }
 .daily-report-kpis > div:last-child { border-right: 0; }
@@ -344,6 +356,9 @@
   .daily-report-summary-grid > .daily-report-rows {
     flex: 1 1 0;
     min-width: 0;
+  }
+  .daily-report-rows-primary {
+    flex: 1.6 1 0;
   }
 
   .daily-report-rows > div {

@@ -40,7 +40,6 @@ import "./hall.css";
 
 const paymentTypeOptions = [
   { label: "Naqd", value: "naqd" },
-  { label: "Click", value: "click" },
   { label: "Bank", value: "bank" },
   { label: "Karta", value: "karta" },
 ];

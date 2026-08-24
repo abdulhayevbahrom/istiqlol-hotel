@@ -19,6 +19,7 @@ import {
   useGetSettingsQuery,
   useLazyGetGuestByPassportQuery,
 } from "../store/employeeApi";
+import GroupBookingForm from "./GroupBookingForm";
 
 const DEFAULT_ROOM_CATEGORIES = [
   "standart",
@@ -38,18 +39,20 @@ const initialValues = {
   bookedForDate: null,
   room: undefined,
   dailyRate: 0,
-  checkoutDate: null,
+  checkoutDate: dayjs().add(1, "day"),
   firstname: "",
   lastname: "",
   passport: "",
   birthDate: "",
   phone: "",
   email: "",
+  organization: "",
   note: "",
   additionalGuests: [],
   checkInAt: dayjs(),
   initialPaymentAmount: 0,
   initialPaymentType: "naqd",
+  mainPaymentType: "naqd",
 };
 
 const normalizeUzDateInput = (value) => {
@@ -135,7 +138,7 @@ function GuestCheckinPage() {
   const latestPassportRef = useRef("");
   const [roomType, setRoomType] = useState(initialValues.roomType);
   const [guestType, setGuestType] = useState(initialValues.guestType);
-  const mode = Form.useWatch("mode", form) || "checkin";
+  const [mode, setMode] = useState("checkin");
   const isBookingMode = mode === "booking";
   const [isBlacklistedPassport, setIsBlacklistedPassport] = useState(false);
   const rooms = useMemo(() => roomsData?.innerData || [], [roomsData]);
@@ -233,6 +236,7 @@ function GuestCheckinPage() {
         0;
     setRoomType(nextRoomType);
     setGuestType(pref.guestType || "uzb");
+    setMode("checkin");
     form.setFieldsValue({
       mode: "checkin",
       roomType: nextRoomType,
@@ -247,6 +251,7 @@ function GuestCheckinPage() {
         : "",
       phone: pref.phone || "",
       email: pref.email || "",
+      organization: pref.organization || "",
       note: pref.note || "",
       guestType: pref.guestType || "uzb",
       vip: false,
@@ -256,8 +261,10 @@ function GuestCheckinPage() {
   }, [form, location.state, rooms]);
 
   const onSubmit = async (values) => {
-    const birthDateIso = parseUzDateToIso(values.birthDate);
-    if (!birthDateIso) {
+    const birthDateIso = String(values.birthDate || "").trim()
+      ? parseUzDateToIso(values.birthDate)
+      : null;
+    if (String(values.birthDate || "").trim() && !birthDateIso) {
       toast.error("Tug'ilgan sana formati: dd.mm.yyyy");
       return;
     }
@@ -282,14 +289,16 @@ function GuestCheckinPage() {
         ? Number(values.initialPaymentAmount || 0)
         : 0,
       initialPaymentType: !isBookingMode ? values.initialPaymentType : undefined,
+      mainPaymentType: values.mainPaymentType || "naqd",
     };
     const firstGuest = {
       firstname: String(values.firstname || "").trim(),
       lastname: String(values.lastname || "").trim(),
       passport: String(values.passport || "").trim(),
-      birthDate: birthDateIso,
+      birthDate: birthDateIso || undefined,
       phone: String(values.phone || "").trim(),
       email: String(values.email || "").trim(),
+      organization: String(values.organization || "").trim(),
       note: String(values.note || "").trim(),
       vip: isBookingMode ? false : Boolean(values.vip),
     };
@@ -308,8 +317,11 @@ function GuestCheckinPage() {
       if (additionalGuests.length > 0) {
         const extraGuests = [];
         for (const guest of additionalGuests) {
-          const extraBirthDateIso = parseUzDateToIso(guest?.birthDate);
-          if (!extraBirthDateIso) {
+          const rawExtraBirthDate = String(guest?.birthDate || "").trim();
+          const extraBirthDateIso = rawExtraBirthDate
+            ? parseUzDateToIso(rawExtraBirthDate)
+            : null;
+          if (rawExtraBirthDate && !extraBirthDateIso) {
             toast.error("Yangi mehmon tug'ilgan sana formati: dd.mm.yyyy");
             return;
           }
@@ -317,7 +329,7 @@ function GuestCheckinPage() {
             firstname: String(guest?.firstname || "").trim(),
             lastname: String(guest?.lastname || "").trim(),
             passport: String(guest?.passport || "").trim(),
-            birthDate: extraBirthDateIso,
+            birthDate: extraBirthDateIso || undefined,
             phone: String(guest?.phone || "").trim(),
             email: String(guest?.email || "").trim(),
             note: String(guest?.note || "").trim(),
@@ -407,6 +419,17 @@ function GuestCheckinPage() {
     return () => clearTimeout(timer);
   }, [passportValue, fetchGuestByPassport, form]);
 
+  if (mode === "group") {
+    return (
+      <GroupBookingForm
+        onModeChange={(nextMode) => {
+          setMode(nextMode);
+          form.setFieldValue("mode", nextMode);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="checkin-modern">
       <div className="checkin-modern-card">
@@ -422,11 +445,14 @@ function GuestCheckinPage() {
           <div className="checkin-grid-top">
             <Form.Item name="mode" label="Amal turi">
               <Segmented
+                value={mode}
                 options={[
                   { label: "Qabul qilish", value: "checkin" },
                   { label: "Bron qilish", value: "booking" },
+                  { label: "Guruh", value: "group" },
                 ]}
                 block
+                onChange={setMode}
               />
             </Form.Item>
             <Form.Item name="roomType" label="Xona turi">
@@ -623,7 +649,6 @@ function GuestCheckinPage() {
               name="birthDate"
               label="Tug'ilgan sana"
               rules={[
-                { required: true, message: "Sana majburiy" },
                 {
                   pattern: /^\d{2}\.\d{2}\.\d{4}$/,
                   message: "Format: dd.mm.yyyy",
@@ -657,6 +682,9 @@ function GuestCheckinPage() {
             <Form.Item name="email" label="Email (ixtiyoriy)">
               <Input type="email" placeholder="name@example.com" />
             </Form.Item>
+            <Form.Item name="organization" label="Tashkilot (ixtiyoriy)">
+              <Input placeholder="Tashkilot nomi" />
+            </Form.Item>
           </div>
           <Form.Item name="note" label="Izoh">
             <Input.TextArea
@@ -686,7 +714,15 @@ function GuestCheckinPage() {
                   options={[
                     { label: "Naqd", value: "naqd" },
                     { label: "Plastik", value: "karta" },
-                    { label: "Click", value: "click" },
+                    { label: "Bank o'tkazmasi", value: "bank" },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item name="mainPaymentType" label="Asosiy to'lov usuli">
+                <Segmented
+                  block
+                  options={[
+                    { label: "Naqd", value: "naqd" },
                     { label: "Bank o'tkazmasi", value: "bank" },
                   ]}
                 />
@@ -731,7 +767,6 @@ function GuestCheckinPage() {
                         name={[field.name, "birthDate"]}
                         label="Tug'ilgan sana"
                         rules={[
-                          { required: true, message: "Sana majburiy" },
                           {
                             pattern: /^\d{2}\.\d{2}\.\d{4}$/,
                             message: "Format: dd.mm.yyyy",

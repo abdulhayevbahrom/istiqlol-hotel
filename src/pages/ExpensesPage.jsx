@@ -30,13 +30,11 @@ const formatMoney = (value) => Number(value || 0).toLocaleString();
 const paymentTypeOptions = [
   { label: "Naqd", value: "naqd" },
   { label: "Karta", value: "karta" },
-  { label: "Click", value: "click" },
   { label: "Bank", value: "bank" },
 ];
 const paymentTypeLabel = {
   naqd: "Naqd",
   karta: "Karta",
-  click: "Click",
   bank: "Bank",
 };
 const formatCreatedBy = (createdBy) => {

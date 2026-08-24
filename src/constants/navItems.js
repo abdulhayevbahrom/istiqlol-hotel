@@ -5,6 +5,7 @@ export const navItems = [
   { to: "/occupancy", label: "Shaxmatka", section: "guests" },
   { to: "/guest-checkin", label: "Yangi mehmon", section: "guests" },
   { to: "/guests-active", label: "Active mijozlar", section: "guests-active" },
+  { to: "/groups", label: "Guruhlar", section: "groups" },
   {
     to: "/guests-history",
     label: "Mijozlar tarixi",

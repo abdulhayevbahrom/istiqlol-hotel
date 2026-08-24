@@ -3,6 +3,7 @@ const guestSections = [
   "guests-active",
   "guests-history",
   "guests-debtors",
+  "groups",
 ];
 
 export const hasFullAccess = (role = "") =>
@@ -14,6 +15,10 @@ export const hasSectionAccess = (sections = [], requiredSection = "") => {
   if (current.includes(requiredSection)) return true;
 
   if (requiredSection.startsWith("guests-") && current.includes("guests")) {
+    return true;
+  }
+
+  if (requiredSection === "groups" && current.includes("guests")) {
     return true;
   }
 

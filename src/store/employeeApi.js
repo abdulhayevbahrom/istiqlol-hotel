@@ -116,6 +116,42 @@ export const employeeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Guest", "Room"],
     }),
+    getGroupBookings: builder.query({
+      query: ({ tab = "active", page = 1, limit = 20 } = {}) =>
+        `/group-bookings?tab=${encodeURIComponent(tab)}&page=${page}&limit=${limit}`,
+      providesTags: ["GroupBooking", "Guest"],
+    }),
+    createGroupBooking: builder.mutation({
+      query: (body) => ({
+        url: "/group-booking",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["GroupBooking", "Guest", "Room"],
+    }),
+    updateGroupBooking: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/group-booking/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["GroupBooking", "Guest"],
+    }),
+    deleteGroupBooking: builder.mutation({
+      query: (id) => ({
+        url: `/group-booking/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["GroupBooking", "Guest", "Room"],
+    }),
+    addGroupPayment: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/group-booking/${id}/payment`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["GroupBooking", "Guest"],
+    }),
     updateGuest: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/guest/${id}`,
@@ -335,6 +371,11 @@ export const {
   useLazyGetGuestByPassportQuery,
   useCreateGuestMutation,
   useCreateGuestsBulkMutation,
+  useGetGroupBookingsQuery,
+  useCreateGroupBookingMutation,
+  useUpdateGroupBookingMutation,
+  useDeleteGroupBookingMutation,
+  useAddGroupPaymentMutation,
   useUpdateGuestMutation,
   useAddGuestPaymentMutation,
   useUpdateGuestPaymentMutation,
