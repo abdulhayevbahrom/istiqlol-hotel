@@ -1,13 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Modal, Select } from "antd";
-import { FiCalendar, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiCalendar, FiChevronLeft, FiChevronRight, FiPrinter } from "react-icons/fi";
 import { useSelector } from "react-redux";
-import { useGetOccupancyQuery, useGetRoomsQuery } from "../store/employeeApi";
+import { useReactToPrint } from "react-to-print";
+import {
+  useGetOccupancyQuery,
+  useGetRoomsQuery,
+  useLazyGetGuestByIdQuery,
+} from "../store/employeeApi";
 import {
   acquireSocketConnection,
   releaseSocketConnection,
 } from "../config/socketConfig";
 import PageLoader from "../components/PageLoader";
+import BookingConfirmation from "../components/BookingConfirmation";
 import "./occupancy.css";
 
 const DAY_COUNT = 14;
@@ -75,6 +81,7 @@ function OccupancyPage() {
   const [korpus, setKorpus] = useState();
   const [floor, setFloor] = useState();
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const bookingPrintRef = useRef(null);
   const token = useSelector((state) => state.auth?.token);
   const todayStart = useMemo(() => startOfDay(new Date()), []);
   const isHistoricalView = viewStart < startOfDay(new Date());
@@ -96,6 +103,27 @@ function OccupancyPage() {
     refetch: refetchOccupancy,
   } =
     useGetOccupancyQuery({ from: dateKey(viewStart), to: dateKey(viewEnd) });
+  const [getGuestById, { isFetching: guestDetailsLoading }] =
+    useLazyGetGuestByIdQuery();
+
+  const printBooking = useReactToPrint({
+    content: () => bookingPrintRef.current,
+    documentTitle: `Bron-${selectedGuest?.externalReservationId || selectedGuest?._id || "tasdiq"}`,
+    pageStyle: `
+      @page { size: A4 portrait; margin: 0; }
+      body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    `,
+  });
+
+  const openGuestDetails = async (entry) => {
+    setSelectedGuest(entry);
+    try {
+      const result = await getGuestById(entry._id).unwrap();
+      if (result?.innerData) setSelectedGuest(result.innerData);
+    } catch {
+      // Shaxmatkadagi ma'lumot modalni ko'rsatish uchun yetarli.
+    }
+  };
 
   useEffect(() => {
     const socket = acquireSocketConnection(token);
@@ -293,7 +321,7 @@ function OccupancyPage() {
                             top: `${(entry.lane - 1) * ROW_HEIGHT}px`,
                           }}
                           title={`${name}: ${formatDate(entry.bookedForAt || entry.checkInAt)} — ${formatDate(entry.checkOutAt || entry.checkoutDueAt)}`}
-                          onClick={() => setSelectedGuest(entry)}
+                          onClick={() => openGuestDetails(entry)}
                         >
                           <span>{name}</span>
                         </button>
@@ -309,7 +337,26 @@ function OccupancyPage() {
         {!visibleRooms.length ? <div className="occupancy-empty">Ko‘rsatish uchun xona topilmadi.</div> : null}
       </div>
 
-      <Modal title="Bron ma’lumotlari" open={Boolean(selectedGuest)} footer={null} onCancel={() => setSelectedGuest(null)}>
+      <Modal
+        title="Bron ma’lumotlari"
+        open={Boolean(selectedGuest)}
+        onCancel={() => setSelectedGuest(null)}
+        footer={
+          <>
+            <Button onClick={() => setSelectedGuest(null)}>Yopish</Button>
+            {selectedGuest?.status === "booked" ? (
+              <Button
+                className="hotel-primary-btn"
+                icon={<FiPrinter />}
+                loading={guestDetailsLoading}
+                onClick={printBooking}
+              >
+                Bron qog‘ozini print qilish
+              </Button>
+            ) : null}
+          </>
+        }
+      >
         {selectedGuest ? (
           <div className="occupancy-detail">
             <div><span>Mijoz</span><strong>{selectedGuest.firstname} {selectedGuest.lastname}</strong></div>
@@ -326,6 +373,12 @@ function OccupancyPage() {
           </div>
         ) : null}
       </Modal>
+
+      <div style={{ position: "absolute", left: "-99999px", top: 0 }}>
+        <div ref={bookingPrintRef}>
+          <BookingConfirmation guest={selectedGuest} />
+        </div>
+      </div>
     </div>
   );
 }

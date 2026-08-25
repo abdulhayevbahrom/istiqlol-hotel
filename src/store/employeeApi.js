@@ -100,6 +100,9 @@ export const employeeApi = apiSlice.injectEndpoints({
     getGuestByPassport: builder.query({
       query: (passport) => `/guest/by-passport/${encodeURIComponent(passport)}`,
     }),
+    getGuestById: builder.query({
+      query: (id) => `/guest/${encodeURIComponent(id)}`,
+    }),
     createGuest: builder.mutation({
       query: (body) => ({
         url: "/guest",
@@ -369,6 +372,7 @@ export const {
   useGetVipRequestsCountQuery,
   useDecideVipRequestMutation,
   useLazyGetGuestByPassportQuery,
+  useLazyGetGuestByIdQuery,
   useCreateGuestMutation,
   useCreateGuestsBulkMutation,
   useGetGroupBookingsQuery,
