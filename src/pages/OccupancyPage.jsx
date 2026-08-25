@@ -1,7 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Modal, Select } from "antd";
 import { FiCalendar, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { useSelector } from "react-redux";
 import { useGetOccupancyQuery, useGetRoomsQuery } from "../store/employeeApi";
+import {
+  acquireSocketConnection,
+  releaseSocketConnection,
+} from "../config/socketConfig";
 import PageLoader from "../components/PageLoader";
 import "./occupancy.css";
 
@@ -70,6 +75,7 @@ function OccupancyPage() {
   const [korpus, setKorpus] = useState();
   const [floor, setFloor] = useState();
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const token = useSelector((state) => state.auth?.token);
   const todayStart = useMemo(() => startOfDay(new Date()), []);
   const isHistoricalView = viewStart < startOfDay(new Date());
   const viewEnd = useMemo(() => addDays(viewStart, DAY_COUNT), [viewStart]);
@@ -78,9 +84,32 @@ function OccupancyPage() {
     [viewStart],
   );
 
-  const { data: roomsData, isLoading: roomsLoading } = useGetRoomsQuery();
-  const { data: occupancyData, isLoading: occupancyLoading, isFetching } =
+  const {
+    data: roomsData,
+    isLoading: roomsLoading,
+    refetch: refetchRooms,
+  } = useGetRoomsQuery();
+  const {
+    data: occupancyData,
+    isLoading: occupancyLoading,
+    isFetching,
+    refetch: refetchOccupancy,
+  } =
     useGetOccupancyQuery({ from: dateKey(viewStart), to: dateKey(viewEnd) });
+
+  useEffect(() => {
+    const socket = acquireSocketConnection(token);
+    if (!socket) return undefined;
+    const refreshTimeline = () => {
+      refetchOccupancy();
+      refetchRooms();
+    };
+    socket.on("guest_updated", refreshTimeline);
+    return () => {
+      socket.off("guest_updated", refreshTimeline);
+      releaseSocketConnection(socket);
+    };
+  }, [token, refetchOccupancy, refetchRooms]);
 
   const rooms = useMemo(() => roomsData?.innerData || [], [roomsData]);
   const occupancy = useMemo(
@@ -288,6 +317,12 @@ function OccupancyPage() {
             <div><span>Kelish</span><strong>{formatDate(selectedGuest.bookedForAt || selectedGuest.checkInAt)}</strong></div>
             <div><span>Chiqish</span><strong>{formatDate(selectedGuest.checkOutAt || selectedGuest.checkoutDueAt)}</strong></div>
             <div><span>Holati</span><strong>{selectedGuest.status === "booked" ? "Bron qilingan" : "Hozir yashayapti"}</strong></div>
+            {selectedGuest.source === "booking_com" ? (
+              <>
+                <div><span>Manba</span><strong>Booking.com</strong></div>
+                <div><span>Bron raqami</span><strong>{selectedGuest.externalReservationId || "-"}</strong></div>
+              </>
+            ) : null}
           </div>
         ) : null}
       </Modal>
