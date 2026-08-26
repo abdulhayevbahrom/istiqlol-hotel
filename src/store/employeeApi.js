@@ -49,7 +49,7 @@ export const employeeApi = apiSlice.injectEndpoints({
       invalidatesTags: ["Room"],
     }),
     updateRoom: builder.mutation({
-      query: ({ id, ...body }) => ({
+      query: ({ id, body }) => ({
         url: `/room/${id}`,
         method: "PUT",
         body,

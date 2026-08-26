@@ -123,6 +123,12 @@ const normalizePhoneInput = (value) => {
 const formatMoney = (value) =>
   `${Number(value || 0).toLocaleString("uz-UZ")} so'm`;
 
+const getPayableAmount = (guest) =>
+  Math.max(
+    Number(guest?.payableAmount ?? guest?.debtAmount ?? 0),
+    0,
+  );
+
 const formatActionBy = (actionBy) => {
   const firstname = String(actionBy?.firstname || "").trim();
   const lastname = String(actionBy?.lastname || "").trim();
@@ -424,12 +430,12 @@ function GuestsPage({ tab = "active" }) {
   });
 
   const openPaymentModal = (guest) => {
-    const debtAmount = Number(guest?.debtAmount || 0);
-    if (!guest || debtAmount <= 0) return;
+    const payableAmount = getPayableAmount(guest);
+    if (!guest || payableAmount <= 0) return;
     setPaymentGuest(guest);
     setPaymentGuestId(guest._id);
     paymentForm.setFieldsValue({
-      amount: debtAmount,
+      amount: payableAmount,
       type: "naqd",
       note: "",
     });
@@ -438,14 +444,17 @@ function GuestsPage({ tab = "active" }) {
 
   const openBulkPaymentModal = () => {
     const paymentGuests = activeSelectableGuests.filter(
-      (guest) => selectedGuestIds.includes(guest._id) && !guest.vip && Number(guest.debtAmount || 0) > 0,
+      (guest) =>
+        selectedGuestIds.includes(guest._id) &&
+        !guest.vip &&
+        getPayableAmount(guest) > 0,
     );
     if (!paymentGuests.length) {
       toast.error("To'lov uchun qarzdor mijozlarni tanlang");
       return;
     }
     const totalDebt = paymentGuests.reduce(
-      (sum, guest) => sum + Math.max(Number(guest.debtAmount || 0), 0),
+      (sum, guest) => sum + getPayableAmount(guest),
       0,
     );
     setPaymentGuest({
@@ -546,24 +555,24 @@ function GuestsPage({ tab = "active" }) {
 
   const onPaymentSubmit = async (values) => {
     try {
-      const debtAmount = Number(paymentGuest?.debtAmount || 0);
-      if (debtAmount <= 0) {
-        toast.error("Qarzdorlik mavjud emas");
+      const payableAmount = getPayableAmount(paymentGuest);
+      if (payableAmount <= 0) {
+        toast.error("To'lanishi mumkin bo'lgan summa mavjud emas");
         return;
       }
       const paymentAmount = Number(values.amount || 0);
-      if (paymentAmount > debtAmount) {
-        toast.error("To'lov qarzdan oshmasin");
+      if (paymentAmount > payableAmount) {
+        toast.error("To'lov rejalashtirilgan umumiy summadan oshmasin");
         return;
       }
       if (paymentGuest?.bulk) {
         let remaining = paymentAmount;
         const unpaidGuests = paymentGuest.guests.filter(
-          (guest) => Number(guest.debtAmount || 0) > 0,
+          (guest) => getPayableAmount(guest) > 0,
         );
         for (let index = 0; index < unpaidGuests.length; index += 1) {
           const guest = unpaidGuests[index];
-          const guestDebt = Math.max(Number(guest.debtAmount || 0), 0);
+          const guestDebt = getPayableAmount(guest);
           const remainingGuests = unpaidGuests.length - index;
           const equalShare = Math.floor(remaining / remainingGuests);
           const guestPayment = Math.min(
@@ -872,7 +881,7 @@ function GuestsPage({ tab = "active" }) {
       toast.error(err?.data?.message || "Excel yuklab olishda xatolik");
     }
   }, [fetchGuestsForExport, filters]);
-  const paymentDebtMax = Math.max(Number(paymentGuest?.debtAmount || 0), 0);
+  const paymentDebtMax = getPayableAmount(paymentGuest);
   const debtorsActionsMenu = useMemo(
     () => ({
       items: [
@@ -1272,7 +1281,7 @@ function GuestsPage({ tab = "active" }) {
                                   : "To'lov"
                               }
                               disabled={
-                                guest.vip || Number(guest.debtAmount || 0) <= 0
+                                guest.vip || getPayableAmount(guest) <= 0
                               }
                             >
                               <FiCreditCard size={16} />
@@ -1299,7 +1308,7 @@ function GuestsPage({ tab = "active" }) {
                                 }
                                 disabled={
                                   guest.vip ||
-                                  Number(guest.debtAmount || 0) <= 0
+                                  getPayableAmount(guest) <= 0
                                 }
                               >
                                 <FiCreditCard size={16} />
@@ -1521,13 +1530,15 @@ function GuestsPage({ tab = "active" }) {
                 { required: true, message: "Summa majburiy" },
                 () => ({
                   validator() {
-                    const debtAmount = Number(paymentGuest?.debtAmount || 0);
+                    const debtAmount = getPayableAmount(paymentGuest);
                     const value = Number(
                       paymentForm.getFieldValue("amount") || 0,
                     );
                     if (debtAmount > 0 && value > debtAmount) {
                       return Promise.reject(
-                        new Error("To'lov miqdori qarzdan oshmasin"),
+                        new Error(
+                          "To'lov rejalashtirilgan umumiy summadan oshmasin",
+                        ),
                       );
                     }
                     return Promise.resolve();
