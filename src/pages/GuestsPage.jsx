@@ -32,12 +32,12 @@ import {
   FiXCircle,
   FiRefreshCw,
 } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
 import {
   useAddGuestServiceMutation,
   useAddGuestPaymentMutation,
   useUpdateGuestPaymentMutation,
   useCheckoutGuestMutation,
+  useContinueGuestStayMutation,
   useCheckoutGuestsBulkMutation,
   useDecideVipRequestMutation,
   useDeleteGuestMutation,
@@ -61,12 +61,20 @@ const getCurrentStayDay = (checkInAt, checkoutTime = "12:00") => {
     .split(":")
     .map(Number);
   const today = dayjs();
-  const checkoutPassed =
-    today.hour() > checkoutHour ||
-    (today.hour() === checkoutHour && today.minute() >= checkoutMinute);
+  const isBeforeCheckout = (value) =>
+    value.hour() < checkoutHour ||
+    (value.hour() === checkoutHour && value.minute() < checkoutMinute);
+  const checkIn = dayjs(checkInAt);
+  let checkInOperationalDay = checkIn.startOf("day");
+  if (isBeforeCheckout(checkIn)) {
+    checkInOperationalDay = checkInOperationalDay.subtract(1, "day");
+  }
+  let currentOperationalDay = today.startOf("day");
+  if (isBeforeCheckout(today)) {
+    currentOperationalDay = currentOperationalDay.subtract(1, "day");
+  }
   return Math.max(
-    today.startOf("day").diff(dayjs(checkInAt).startOf("day"), "day") +
-      (checkoutPassed ? 1 : 0),
+    currentOperationalDay.diff(checkInOperationalDay, "day") + 1,
     1,
   );
 };
@@ -76,13 +84,24 @@ const getStayedDays = (checkInAt, checkOutAt, checkoutTime = "12:00") => {
   const [checkoutHour = 12, checkoutMinute = 0] = String(checkoutTime)
     .split(":")
     .map(Number);
+  const checkIn = dayjs(checkInAt);
   const checkOut = dayjs(checkOutAt);
-  const checkoutPassed =
-    checkOut.hour() > checkoutHour ||
-    (checkOut.hour() === checkoutHour && checkOut.minute() > checkoutMinute);
+  const isBeforeCheckout = (value) =>
+    value.hour() < checkoutHour ||
+    (value.hour() === checkoutHour && value.minute() < checkoutMinute);
+  const isAtOrBeforeCheckout = (value) =>
+    value.hour() < checkoutHour ||
+    (value.hour() === checkoutHour && value.minute() <= checkoutMinute);
+  let checkInOperationalDay = checkIn.startOf("day");
+  if (isBeforeCheckout(checkIn)) {
+    checkInOperationalDay = checkInOperationalDay.subtract(1, "day");
+  }
+  let checkOutOperationalDay = checkOut.startOf("day");
+  if (isAtOrBeforeCheckout(checkOut)) {
+    checkOutOperationalDay = checkOutOperationalDay.subtract(1, "day");
+  }
   return Math.max(
-    checkOut.startOf("day").diff(dayjs(checkInAt).startOf("day"), "day") +
-      (checkoutPassed ? 1 : 0),
+    checkOutOperationalDay.diff(checkInOperationalDay, "day") + 1,
     1,
   );
 };
@@ -204,7 +223,6 @@ const VipRequestsPanel = memo(function VipRequestsPanel({
 });
 
 function GuestsPage({ tab = "active" }) {
-  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
   const { data: settingsData } = useGetSettingsQuery();
@@ -385,6 +403,8 @@ function GuestsPage({ tab = "active" }) {
   const [updateGuest, { isLoading: updating }] = useUpdateGuestMutation();
   const [checkoutGuest, { isLoading: checkingOut }] =
     useCheckoutGuestMutation();
+  const [continueGuestStay, { isLoading: continuingStay }] =
+    useContinueGuestStayMutation();
   const [checkoutGuestsBulk, { isLoading: bulkCheckingOut }] =
     useCheckoutGuestsBulkMutation();
   const [decideVipRequest, { isLoading: decidingVip }] =
@@ -407,6 +427,9 @@ function GuestsPage({ tab = "active" }) {
   const [isPaymentEditModalOpen, setIsPaymentEditModalOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [paymentEditForm] = Form.useForm();
+  const [isContinueModalOpen, setIsContinueModalOpen] = useState(false);
+  const [continuingGuest, setContinuingGuest] = useState(null);
+  const [continueForm] = Form.useForm();
   const [receiptData, setReceiptData] = useState(null);
   const receiptRef = useRef(null);
   const [hotelReceiptData, setHotelReceiptData] = useState(null);
@@ -507,6 +530,7 @@ function GuestsPage({ tab = "active" }) {
       dailyRate: Number(guest.dailyRate || 0),
       stayDays: Number(guest.stayDays || 1),
       checkInAt: guest.checkInAt ? dayjs(guest.checkInAt) : null,
+      checkOutAt: guest.checkOutAt ? dayjs(guest.checkOutAt) : null,
       bookedForAt: guest.bookedForAt ? dayjs(guest.bookedForAt) : null,
       isBlacklisted: Boolean(guest.isBlacklisted),
       note: guest.note || "",
@@ -740,7 +764,10 @@ function GuestsPage({ tab = "active" }) {
         note: String(values.note || "").trim(),
         isBlacklisted: Boolean(values.isBlacklisted),
         checkInAt: values.checkInAt ? values.checkInAt.toISOString() : undefined,
-    };
+      };
+      if (editGuestStatus === "checked_out" && values.checkOutAt) {
+        payload.checkOutAt = values.checkOutAt.toISOString();
+      }
       if (editGuestStatus === "booked" && values.bookedForAt) {
         payload.bookedForAt = values.bookedForAt.format("YYYY-MM-DD");
       }
@@ -771,24 +798,32 @@ function GuestsPage({ tab = "active" }) {
     }, 120);
   };
 
-  const onRecheckinGuest = (guest) => {
-    navigate("/guest-checkin", {
-      state: {
-        recheckinGuest: {
-          firstname: guest.firstname || "",
-          lastname: guest.lastname || "",
-          passport: guest.passport || "",
-          phone: guest.phone || "",
-          email: guest.email || "",
-          birthDate: guest.birthDate || "",
-          guestType: guest.guestType || "uzb",
-          roomId: guest.room?._id || guest.room || "",
-          roomType: guest.room?.category || "standart",
-          dailyRate: Number(guest.dailyRate || 0),
-          note: guest.note || "",
-        },
-      },
-    });
+  const openContinueModal = (guest) => {
+    setContinuingGuest(guest);
+    continueForm.setFieldsValue({ additionalDays: 1 });
+    setIsContinueModalOpen(true);
+  };
+
+  const closeContinueModal = () => {
+    setIsContinueModalOpen(false);
+    setContinuingGuest(null);
+    continueForm.resetFields();
+  };
+
+  const onContinueGuestStay = async (values) => {
+    if (!continuingGuest?._id) return;
+    try {
+      const result = await continueGuestStay({
+        id: continuingGuest._id,
+        additionalDays: Number(values.additionalDays || 1),
+      }).unwrap();
+      toast.success(
+        result?.message || "Mijozning yashash jarayoni davom ettirildi",
+      );
+      closeContinueModal();
+    } catch (err) {
+      toast.error(err?.data?.message || "Jarayonni davom ettirishda xatolik");
+    }
   };
   const onExportDebtorsExcel = useCallback(async () => {
     try {
@@ -1349,8 +1384,8 @@ function GuestsPage({ tab = "active" }) {
                           {tab === "history" ? (
                             <button
                               className="icon-btn"
-                              title="Qayta qabul qilish"
-                              onClick={() => onRecheckinGuest(guest)}
+                              title="Jarayonni davom ettirish"
+                              onClick={() => openContinueModal(guest)}
                             >
                               <FiRefreshCw size={16} />
                             </button>
@@ -1601,6 +1636,64 @@ function GuestsPage({ tab = "active" }) {
         </Modal>
       ) : null}
 
+      {isContinueModalOpen ? (
+        <Modal
+          open={isContinueModalOpen}
+          onCancel={closeContinueModal}
+          footer={null}
+          destroyOnHidden
+          width={480}
+          rootClassName="employee-modal-theme"
+          title="Yashash jarayonini davom ettirish"
+        >
+          <p>
+            <b>
+              {continuingGuest?.firstname || ""}{" "}
+              {continuingGuest?.lastname || ""}
+            </b>{" "}
+            avvalgi yozuvi bilan davom etadi. To‘lovlar va xizmatlar saqlanadi.
+          </p>
+          <Form
+            form={continueForm}
+            layout="vertical"
+            onFinish={onContinueGuestStay}
+            requiredMark={false}
+          >
+            <Form.Item
+              name="additionalDays"
+              label="Qo‘shimcha qolish kunlari"
+              rules={[
+                { required: true, message: "Qo‘shimcha kunni kiriting" },
+                {
+                  type: "number",
+                  min: 1,
+                  max: 365,
+                  message: "1 dan 365 kungacha kiriting",
+                },
+              ]}
+            >
+              <InputNumber
+                min={1}
+                max={365}
+                precision={0}
+                style={{ width: "100%" }}
+                onKeyDown={blockNonIntegerKeys}
+              />
+            </Form.Item>
+            <div className="row-actions">
+              <Button
+                htmlType="submit"
+                loading={continuingStay}
+                className="hotel-primary-btn"
+              >
+                Davom ettirish
+              </Button>
+              <Button onClick={closeContinueModal}>Bekor qilish</Button>
+            </div>
+          </Form>
+        </Modal>
+      ) : null}
+
       {isServiceModalOpen ? (
         <Modal
           open={isServiceModalOpen}
@@ -1800,17 +1893,22 @@ function GuestsPage({ tab = "active" }) {
             </Form.Item>
             <Form.Item
               name="stayDays"
-              label="Qolish kuni"
+              label={
+                editGuestStatus === "checked_out"
+                  ? "Qolish kuni (checkoutdan hisoblanadi)"
+                  : "Qolish kuni"
+              }
               rules={[{ required: true, message: "Kun majburiy" }]}
             >
               <InputNumber
                 min={1}
                 precision={0}
+                disabled={editGuestStatus === "checked_out"}
                 style={{ width: "100%" }}
                 parser={(value) => String(value || "").replace(/[^\d]/g, "")}
                 onKeyDown={blockNonIntegerKeys}
               />
-              </Form.Item>
+            </Form.Item>
             <Form.Item
               name="checkInAt"
               label="Kelgan sana vaqti"
@@ -1823,6 +1921,44 @@ function GuestsPage({ tab = "active" }) {
                 allowClear={false}
               />
             </Form.Item>
+            {editGuestStatus === "checked_out" ? (
+              <Form.Item
+                name="checkOutAt"
+                label="Checkout sana vaqti"
+                rules={[
+                  { required: true, message: "Checkout sana vaqti majburiy" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const checkInAt = getFieldValue("checkInAt");
+                      if (!value || !checkInAt || !value.isBefore(checkInAt)) {
+                        if (value?.isAfter(dayjs())) {
+                          return Promise.reject(
+                            new Error(
+                              "Checkout hozirgi vaqtdan keyin bo'lishi mumkin emas",
+                            ),
+                          );
+                        }
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(
+                        new Error("Checkout kelgan sanadan oldin bo'lishi mumkin emas"),
+                      );
+                    },
+                  }),
+                ]}
+              >
+                <DatePicker
+                  style={{ width: "100%" }}
+                  showTime={{ format: "HH:mm" }}
+                  format="DD.MM.YYYY HH:mm"
+                  allowClear={false}
+                  disabledDate={(current) =>
+                    current &&
+                    current.startOf("day").isAfter(dayjs().startOf("day"))
+                  }
+                />
+              </Form.Item>
+            ) : null}
             {editGuestStatus === "booked" ? (
               <Form.Item
                 name="bookedForAt"

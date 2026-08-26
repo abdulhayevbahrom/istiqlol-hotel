@@ -186,6 +186,14 @@ export const employeeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Guest", "Room"],
     }),
+    continueGuestStay: builder.mutation({
+      query: ({ id, additionalDays }) => ({
+        url: `/guest/${id}/continue`,
+        method: "POST",
+        body: { additionalDays },
+      }),
+      invalidatesTags: ["Guest", "Room"],
+    }),
     checkoutGuestsBulk: builder.mutation({
       query: (body) => ({
         url: "/guests/checkout-bulk",
@@ -384,6 +392,7 @@ export const {
   useAddGuestPaymentMutation,
   useUpdateGuestPaymentMutation,
   useCheckoutGuestMutation,
+  useContinueGuestStayMutation,
   useCheckoutGuestsBulkMutation,
   useDeleteGuestMutation,
   useAddGuestServiceMutation,
