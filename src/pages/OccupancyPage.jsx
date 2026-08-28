@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Modal, Select } from "antd";
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiPrinter } from "react-icons/fi";
+import { Button, Modal, Popconfirm, Select } from "antd";
+import { toast } from "react-toastify";
+import { FiCalendar, FiChevronLeft, FiChevronRight, FiLogOut, FiPrinter } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import {
   useGetOccupancyQuery,
   useGetRoomsQuery,
   useLazyGetGuestByIdQuery,
+  useCheckoutGuestMutation,
 } from "../store/employeeApi";
 import {
   acquireSocketConnection,
@@ -82,6 +84,7 @@ function OccupancyPage() {
   const [floor, setFloor] = useState();
   const [selectedGuest, setSelectedGuest] = useState(null);
   const bookingPrintRef = useRef(null);
+  const guestDetailsRequestRef = useRef(0);
   const token = useSelector((state) => state.auth?.token);
   const todayStart = useMemo(() => startOfDay(new Date()), []);
   const isHistoricalView = viewStart < startOfDay(new Date());
@@ -105,6 +108,7 @@ function OccupancyPage() {
     useGetOccupancyQuery({ from: dateKey(viewStart), to: dateKey(viewEnd) });
   const [getGuestById, { isFetching: guestDetailsLoading }] =
     useLazyGetGuestByIdQuery();
+  const [checkoutGuest, { isLoading: checkingOut }] = useCheckoutGuestMutation();
 
   const printBooking = useReactToPrint({
     content: () => bookingPrintRef.current,
@@ -116,12 +120,32 @@ function OccupancyPage() {
   });
 
   const openGuestDetails = async (entry) => {
+    const requestId = ++guestDetailsRequestRef.current;
     setSelectedGuest(entry);
     try {
       const result = await getGuestById(entry._id).unwrap();
-      if (result?.innerData) setSelectedGuest(result.innerData);
+      if (result?.innerData && guestDetailsRequestRef.current === requestId) {
+        setSelectedGuest(result.innerData);
+      }
     } catch {
       // Shaxmatkadagi ma'lumot modalni ko'rsatish uchun yetarli.
+    }
+  };
+
+  const closeGuestDetails = () => {
+    guestDetailsRequestRef.current += 1;
+    setSelectedGuest(null);
+  };
+
+  const onCheckout = async () => {
+    if (!selectedGuest?._id) return;
+
+    try {
+      const result = await checkoutGuest(selectedGuest._id).unwrap();
+      toast.success(result?.message || "Checkout qilindi");
+      closeGuestDetails();
+    } catch (error) {
+      toast.error(error?.data?.message || "Checkoutda xatolik");
     }
   };
 
@@ -340,10 +364,10 @@ function OccupancyPage() {
       <Modal
         title="Bron ma’lumotlari"
         open={Boolean(selectedGuest)}
-        onCancel={() => setSelectedGuest(null)}
+        onCancel={closeGuestDetails}
         footer={
           <>
-            <Button onClick={() => setSelectedGuest(null)}>Yopish</Button>
+            <Button onClick={closeGuestDetails}>Yopish</Button>
             {selectedGuest?.status === "booked" ? (
               <Button
                 className="hotel-primary-btn"
@@ -353,6 +377,19 @@ function OccupancyPage() {
               >
                 Bron qog‘ozini print qilish
               </Button>
+            ) : null}
+            {selectedGuest?.status === "active" ? (
+              <Popconfirm
+                title="Mehmonni chiqarish"
+                description="Xona avtomatik bo'sh holatga qaytadi"
+                okText="Chiqarish"
+                cancelText="Bekor"
+                okButtonProps={{ loading: checkingOut }}
+                onConfirm={onCheckout}
+                overlayClassName="hotel-popconfirm"
+              >
+                <Button danger icon={<FiLogOut />}>Checkout</Button>
+              </Popconfirm>
             ) : null}
           </>
         }

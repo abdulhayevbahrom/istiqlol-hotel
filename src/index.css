@@ -1060,7 +1060,7 @@ a {
 
 .guest-edit-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px 14px;
 }
 
@@ -1085,6 +1085,52 @@ a {
 
 .guest-edit-flex-row .ant-form-item {
   margin-bottom: 0;
+}
+
+.guest-daily-rates {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 14px;
+  padding: 12px;
+  border: 1px solid #e4d7bd;
+  border-radius: 10px;
+  background: #fffaf1;
+}
+
+.guest-daily-rates > label,
+.guest-daily-rates > small {
+  display: block;
+  grid-column: 1 / -1;
+}
+
+.guest-daily-rates > small {
+  margin: -4px 0 4px;
+  color: #766d5e;
+}
+
+.guest-daily-rate-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.guest-daily-rate-row > span {
+  font-size: 13px;
+  line-height: 1.2;
+  color: #514735;
+}
+
+@media (max-width: 900px) {
+  .guest-edit-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guest-daily-rates {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .checkin-modern {
@@ -2270,6 +2316,10 @@ a {
   }
 
   .guest-edit-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guest-daily-rates {
     grid-template-columns: 1fr;
   }
 

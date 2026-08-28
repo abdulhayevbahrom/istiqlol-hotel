@@ -105,6 +105,18 @@ const getStayedDays = (checkInAt, checkOutAt, checkoutTime = "12:00") => {
     1,
   );
 };
+
+const getDailyRateFields = (guest) => {
+  const savedRates = new Map(
+    (guest?.dailyRates || []).map((item) => [Number(item?.day), Number(item?.amount || 0)]),
+  );
+  const stayDays = Math.max(Number(guest?.stayDays || 1), 1);
+  const defaultRate = Number(guest?.dailyRate || 0);
+  return Array.from({ length: stayDays }, (_, index) => ({
+    day: index + 1,
+    amount: savedRates.has(index + 1) ? savedRates.get(index + 1) : defaultRate,
+  }));
+};
 import {
   acquireSocketConnection,
   releaseSocketConnection,
@@ -528,6 +540,7 @@ function GuestsPage({ tab = "active" }) {
       room: guest.room?._id || guest.room || undefined,
       guestType: guest.guestType || "uzb",
       dailyRate: Number(guest.dailyRate || 0),
+      dailyRates: getDailyRateFields(guest),
       stayDays: Number(guest.stayDays || 1),
       checkInAt: guest.checkInAt ? dayjs(guest.checkInAt) : null,
       checkOutAt: guest.checkOutAt ? dayjs(guest.checkOutAt) : null,
@@ -544,6 +557,18 @@ function GuestsPage({ tab = "active" }) {
     setEditGuestId("");
     setEditGuestStatus("");
     editForm.resetFields();
+  };
+
+  const applyBaseDailyRate = (value) => {
+    const rate = Math.max(Number(value || 0), 0);
+    const currentRates = editForm.getFieldValue("dailyRates") || [];
+    editForm.setFieldValue(
+      "dailyRates",
+      currentRates.map((item, index) => ({
+        day: Number(item?.day || index + 1),
+        amount: rate,
+      })),
+    );
   };
 
   const openHistoryModal = (guest) => {
@@ -760,6 +785,10 @@ function GuestsPage({ tab = "active" }) {
         room: values.room,
         guestType: values.guestType || "uzb",
         dailyRate: Number(values.dailyRate || 0),
+        dailyRates: (values.dailyRates || []).map((item, index) => ({
+          day: Number(item?.day || index + 1),
+          amount: Number(item?.amount || 0),
+        })),
         stayDays: Number(values.stayDays || 1),
         note: String(values.note || "").trim(),
         isBlacklisted: Boolean(values.isBlacklisted),
@@ -1772,7 +1801,7 @@ function GuestsPage({ tab = "active" }) {
           onCancel={closeEditModal}
           footer={null}
           destroyOnHidden
-          width={560}
+          width={920}
           rootClassName="employee-modal-theme"
           title="Mehmonni tahrirlash"
         >
@@ -1889,6 +1918,7 @@ function GuestsPage({ tab = "active" }) {
                 }
                 parser={(value) => String(value || "").replace(/[^\d]/g, "")}
                 onKeyDown={blockNonIntegerKeys}
+                onChange={applyBaseDailyRate}
               />
             </Form.Item>
             <Form.Item
@@ -1909,6 +1939,33 @@ function GuestsPage({ tab = "active" }) {
                 onKeyDown={blockNonIntegerKeys}
               />
             </Form.Item>
+            <Form.List name="dailyRates">
+              {(fields) => (
+                <div className="guest-daily-rates">
+                  <label>Kunlar bo'yicha narx</label>
+                  {fields.map((field) => (
+                    <div className="guest-daily-rate-row" key={field.key}>
+                      <span>{editForm.getFieldValue(["dailyRates", field.name, "day"]) || field.name + 1}-kun</span>
+                      <Form.Item name={[field.name, "day"]} hidden><Input /></Form.Item>
+                      <Form.Item
+                        name={[field.name, "amount"]}
+                        rules={[{ required: true, message: "Narx majburiy" }]}
+                        noStyle
+                      >
+                        <InputNumber
+                          min={0}
+                          precision={0}
+                          style={{ width: "100%" }}
+                          formatter={(value) => String(value || "").replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                          parser={(value) => String(value || "").replace(/[^\d]/g, "")}
+                          onKeyDown={blockNonIntegerKeys}
+                        />
+                      </Form.Item>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Form.List>
             <Form.Item
               name="checkInAt"
               label="Kelgan sana vaqti"
