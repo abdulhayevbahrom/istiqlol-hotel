@@ -537,6 +537,7 @@ function GuestsPage({ tab = "active" }) {
       passport: guest.passport || "",
       phone: guest.phone || "",
       email: guest.email || "",
+      organization: guest.organization || "",
       room: guest.room?._id || guest.room || undefined,
       guestType: guest.guestType || "uzb",
       dailyRate: Number(guest.dailyRate || 0),
@@ -782,6 +783,7 @@ function GuestsPage({ tab = "active" }) {
         passport: String(values.passport || "").trim(),
         phone: String(values.phone || "").trim(),
         email: String(values.email || "").trim(),
+        organization: String(values.organization || "").trim(),
         room: values.room,
         guestType: values.guestType || "uzb",
         dailyRate: Number(values.dailyRate || 0),
@@ -1875,6 +1877,9 @@ function GuestsPage({ tab = "active" }) {
               ]}
             >
               <Input placeholder="name@example.com" />
+            </Form.Item>
+            <Form.Item name="organization" label="Tashkilot">
+              <Input maxLength={120} placeholder="Ixtiyoriy" />
             </Form.Item>
             <Form.Item
               name="room"
