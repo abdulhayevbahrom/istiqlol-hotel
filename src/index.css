@@ -1123,6 +1123,16 @@ a {
   color: #514735;
 }
 
+.guest-daily-rate-row.is-current-day > span {
+  color: #8a640d;
+  font-weight: 700;
+}
+
+.guest-daily-rate-row.is-current-day .ant-input-number {
+  border-color: #cba64f;
+  box-shadow: 0 0 0 2px rgba(203, 166, 79, 0.12);
+}
+
 @media (max-width: 900px) {
   .guest-edit-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

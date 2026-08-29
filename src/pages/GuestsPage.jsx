@@ -434,6 +434,7 @@ function GuestsPage({ tab = "active" }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editGuestId, setEditGuestId] = useState("");
   const [editGuestStatus, setEditGuestStatus] = useState("");
+  const [editGuestCurrentDay, setEditGuestCurrentDay] = useState(0);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyGuest, setHistoryGuest] = useState(null);
   const [isPaymentEditModalOpen, setIsPaymentEditModalOpen] = useState(false);
@@ -531,6 +532,14 @@ function GuestsPage({ tab = "active" }) {
   const openEditModal = (guest) => {
     setEditGuestStatus(String(guest.status || ""));
     setEditGuestId(guest._id);
+    setEditGuestCurrentDay(
+      guest.status === "active"
+        ? getCurrentStayDay(
+            guest.checkInAt,
+            hotelSettings?.checkoutTime || "12:00",
+          )
+        : 0,
+    );
     editForm.setFieldsValue({
       firstname: guest.firstname || "",
       lastname: guest.lastname || "",
@@ -557,6 +566,7 @@ function GuestsPage({ tab = "active" }) {
     setIsEditModalOpen(false);
     setEditGuestId("");
     setEditGuestStatus("");
+    setEditGuestCurrentDay(0);
     editForm.resetFields();
   };
 
@@ -1260,7 +1270,11 @@ function GuestsPage({ tab = "active" }) {
                         </div>
                       </td>
                       <td data-label="Kunlik">
-                        {Number(guest.dailyRate || 0).toLocaleString()}
+                        {Number(
+                          tab === "active"
+                            ? guest.currentDailyRate ?? guest.dailyRate
+                            : guest.dailyRate || 0,
+                        ).toLocaleString()}
                       </td>
                       <td data-label="Jami">
                         {Number(guest.totalAmount || 0).toLocaleString()}
@@ -1949,8 +1963,20 @@ function GuestsPage({ tab = "active" }) {
                 <div className="guest-daily-rates">
                   <label>Kunlar bo'yicha narx</label>
                   {fields.map((field) => (
-                    <div className="guest-daily-rate-row" key={field.key}>
-                      <span>{editForm.getFieldValue(["dailyRates", field.name, "day"]) || field.name + 1}-kun</span>
+                    <div
+                      className={`guest-daily-rate-row ${
+                        Number(editForm.getFieldValue(["dailyRates", field.name, "day"]) || field.name + 1) === editGuestCurrentDay
+                          ? "is-current-day"
+                          : ""
+                      }`}
+                      key={field.key}
+                    >
+                      <span>
+                        {editForm.getFieldValue(["dailyRates", field.name, "day"]) || field.name + 1}-kun
+                        {Number(editForm.getFieldValue(["dailyRates", field.name, "day"]) || field.name + 1) === editGuestCurrentDay
+                          ? " · Bugun"
+                          : ""}
+                      </span>
                       <Form.Item name={[field.name, "day"]} hidden><Input /></Form.Item>
                       <Form.Item
                         name={[field.name, "amount"]}
@@ -1964,6 +1990,12 @@ function GuestsPage({ tab = "active" }) {
                           formatter={(value) => String(value || "").replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                           parser={(value) => String(value || "").replace(/[^\d]/g, "")}
                           onKeyDown={blockNonIntegerKeys}
+                          onChange={(value) =>
+                            editForm.setFieldValue(
+                              ["dailyRates", field.name, "amount"],
+                              Number(value || 0),
+                            )
+                          }
                         />
                       </Form.Item>
                     </div>
