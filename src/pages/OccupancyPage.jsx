@@ -51,6 +51,22 @@ const addDays = (date, amount) => {
 
 const toDayFraction = (value, anchor) => (new Date(value).getTime() - anchor.getTime()) / DAY_MS;
 
+// Shaxmatkada har kun ikki qismdan iborat: 00:00–12:00 va 12:00–24:00.
+// Kelish 12:00 dan oldin bo'lsa kunning birinchi yarmidan, chiqish 12:00
+// gacha bo'lsa birinchi yarmining oxirigacha band deb ko'rsatiladi.
+const toHalfDayPosition = (value, anchor, type) => {
+  const date = new Date(value);
+  const day = startOfDay(date);
+  const isBeforeNoon = date.getHours() < 12;
+  const isBeforeOrAtNoon = isBeforeNoon ||
+    (date.getHours() === 12 && date.getMinutes() === 0);
+  const half = type === "start"
+    ? (isBeforeNoon ? 0 : 0.5)
+    : (isBeforeOrAtNoon ? 0.5 : 1);
+
+  return toDayFraction(day, anchor) + half;
+};
+
 const formatDate = (value) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -68,6 +84,13 @@ const categoryLabels = {
   lyuks: "Lyuks",
   apartament: "Apartament",
   bir_kishilik: "1 kishilik",
+};
+
+const guestStatusLabels = {
+  active: "Hozir yashayapti",
+  booked: "Bron qilingan",
+  checked_out: "Checkout qilingan",
+  cancelled: "Bekor qilingan",
 };
 
 const formatRoomLabel = (room) => {
@@ -213,8 +236,8 @@ function OccupancyPage() {
       const startsAt = guest.bookedForAt || guest.checkInAt;
       const endsAt = guest.checkOutAt || guest.checkoutDueAt;
       if (!startsAt || !endsAt) return;
-      const rawStart = toDayFraction(startOfDay(startsAt), viewStart) + 0.5;
-      const rawEnd = toDayFraction(startOfDay(endsAt), viewStart) + 0.5;
+      const rawStart = toHalfDayPosition(startsAt, viewStart, "start");
+      const rawEnd = toHalfDayPosition(endsAt, viewStart, "end");
       const start = Math.max(0, rawStart);
       const end = Math.min(DAY_COUNT, rawEnd);
       if (end <= 0 || end <= start) return;
@@ -400,7 +423,7 @@ function OccupancyPage() {
             <div><span>Xona</span><strong>{formatRoomLabel(selectedGuest.room)}</strong></div>
             <div><span>Kelish</span><strong>{formatDate(selectedGuest.bookedForAt || selectedGuest.checkInAt)}</strong></div>
             <div><span>Chiqish</span><strong>{formatDate(selectedGuest.checkOutAt || selectedGuest.checkoutDueAt)}</strong></div>
-            <div><span>Holati</span><strong>{selectedGuest.status === "booked" ? "Bron qilingan" : "Hozir yashayapti"}</strong></div>
+            <div><span>Holati</span><strong>{guestStatusLabels[selectedGuest.status] || "Noma'lum"}</strong></div>
             {selectedGuest.source === "booking_com" ? (
               <>
                 <div><span>Manba</span><strong>Booking.com</strong></div>
