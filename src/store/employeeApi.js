@@ -341,6 +341,14 @@ export const employeeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Expense"],
     }),
+    deleteExpensesBulk: builder.mutation({
+      query: (ids) => ({
+        url: "/expenses/bulk",
+        method: "DELETE",
+        body: { ids },
+      }),
+      invalidatesTags: ["Expense"],
+    }),
     getSettings: builder.query({
       query: () => "/settings",
       providesTags: ["Settings"],
@@ -413,6 +421,7 @@ export const {
   useCreateExpenseMutation,
   useUpdateExpenseMutation,
   useDeleteExpenseMutation,
+  useDeleteExpensesBulkMutation,
   useGetSettingsQuery,
   useUpdateSettingsMutation,
   useSendSupportMessageMutation,

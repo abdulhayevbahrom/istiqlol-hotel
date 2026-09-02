@@ -942,6 +942,18 @@ a {
   margin-bottom: 4px;
 }
 
+.expense-select-column {
+  width: 42px;
+  text-align: center;
+}
+
+.expense-select-column input {
+  width: 16px;
+  height: 16px;
+  accent-color: #2f786f;
+  cursor: pointer;
+}
+
 .payment-receipt-80mm {
   width: 80mm;
   color: #111;
@@ -2864,6 +2876,10 @@ a {
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: 6px;
+  }
+
+  .expenses-page .table td.expense-select-column {
+    align-items: center;
   }
 
   .services-page .table .table-empty,
