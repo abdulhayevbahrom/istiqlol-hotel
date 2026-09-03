@@ -274,12 +274,12 @@ function GuestCheckinPage() {
       isBooking: isBookingMode,
       bookedForDate:
         isBookingMode && values.bookedForDate
-          ? values.bookedForDate.format("YYYY-MM-DD")
+          ? values.bookedForDate.toISOString()
           : undefined,
       room: values.room,
       dailyRate: Number(values.dailyRate || 0),
       stayDays: isBookingMode
-        ? Number(values.stayDays || 1)
+        ? calculateStayDays(values.bookedForDate, values.checkoutDate)
         : calculateStayDays(values.checkInAt, values.checkoutDate),
       checkInAt:
         !isBookingMode && values.checkInAt
@@ -305,6 +305,14 @@ function GuestCheckinPage() {
 
     if (isBookingMode && !commonPayload.bookedForDate) {
       toast.error("Bron sanasini tanlang");
+      return;
+    }
+    if (isBookingMode && values.bookedForDate?.isBefore(dayjs())) {
+      toast.error("Bron vaqti hozirgi vaqtdan oldin bo'lishi mumkin emas");
+      return;
+    }
+    if (isBookingMode && !values.checkoutDate) {
+      toast.error("Qachongacha bron qilishini tanlang");
       return;
     }
 
@@ -548,22 +556,72 @@ function GuestCheckinPage() {
             <div className="checkin-room-extra-block">
               <div className="checkin-room-extra-second">
                 {isBookingMode ? (
-                  <Form.Item
-                    name="bookedForDate"
-                    label="Bron sanasi"
-                    rules={[
-                      { required: true, message: "Bron sanasi majburiy" },
-                    ]}
-                  >
-                    <DatePicker
-                      style={{ width: "100%" }}
-                      format="DD.MM.YYYY"
-                      placeholder="Sanani tanlang"
-                      disabledDate={(current) =>
-                        current && current.startOf("day").isBefore(dayjs().startOf("day"))
-                      }
-                    />
-                  </Form.Item>
+                  <>
+                    <Form.Item
+                      name="bookedForDate"
+                      label="Bron sanasi"
+                      rules={[
+                        { required: true, message: "Bron sanasi majburiy" },
+                      ]}
+                    >
+                      <DatePicker
+                        style={{ width: "100%" }}
+                        showTime={{ format: "HH:mm" }}
+                        format="DD.MM.YYYY HH:mm"
+                        placeholder="Sana va vaqt tanlang"
+                        allowClear={false}
+                        disabledDate={(current) =>
+                          current &&
+                          current.startOf("day").isBefore(dayjs().startOf("day"))
+                        }
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="checkoutDate"
+                      label="Qachongacha bron"
+                      rules={[
+                        { required: true, message: "Chiqish sanasi majburiy" },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const bookedForDate = getFieldValue("bookedForDate");
+                            if (
+                              !value ||
+                              !bookedForDate ||
+                              value
+                                .startOf("day")
+                                .isAfter(bookedForDate.startOf("day"))
+                            ) {
+                              return Promise.resolve();
+                            }
+                            return Promise.reject(
+                              new Error(
+                                "Chiqish sanasi bron sanasidan keyin bo'lishi kerak",
+                              ),
+                            );
+                          },
+                        }),
+                      ]}
+                    >
+                      <DatePicker
+                        style={{ width: "100%" }}
+                        format="DD.MM.YYYY"
+                        placeholder="Chiqish sanasini tanlang"
+                        disabledDate={(current) => {
+                          const bookedForDate = form.getFieldValue("bookedForDate");
+                          return (
+                            current &&
+                            (current
+                              .startOf("day")
+                              .isBefore(dayjs().startOf("day")) ||
+                              (bookedForDate &&
+                                !current
+                                  .startOf("day")
+                                  .isAfter(bookedForDate.startOf("day"))))
+                          );
+                        }}
+                      />
+                    </Form.Item>
+                  </>
                 ) : (
                   <>
                     <Form.Item
