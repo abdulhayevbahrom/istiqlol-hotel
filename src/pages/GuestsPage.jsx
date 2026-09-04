@@ -473,6 +473,7 @@ function GuestsPage({ tab = "active" }) {
     paymentForm.setFieldsValue({
       amount: payableAmount,
       type: "naqd",
+      paymentDate: dayjs(),
       note: "",
     });
     setIsPaymentModalOpen(true);
@@ -501,7 +502,12 @@ function GuestsPage({ tab = "active" }) {
       lastname: "",
     });
     setPaymentGuestId("");
-    paymentForm.setFieldsValue({ amount: totalDebt, type: "naqd", note: "" });
+    paymentForm.setFieldsValue({
+      amount: totalDebt,
+      type: "naqd",
+      paymentDate: dayjs(),
+      note: "",
+    });
     setIsPaymentModalOpen(true);
   };
 
@@ -602,6 +608,7 @@ function GuestsPage({ tab = "active" }) {
     paymentEditForm.setFieldsValue({
       amount: Number(payment?.amount || 0),
       type: payment?.type || "naqd",
+      paymentDate: payment?.createdAt ? dayjs(payment.createdAt) : dayjs(),
       note: payment?.note || "",
     });
     setIsPaymentEditModalOpen(true);
@@ -644,6 +651,7 @@ function GuestsPage({ tab = "active" }) {
             id: guest._id,
             amount: guestPayment,
             type: values.type,
+            paymentDate: values.paymentDate?.toISOString(),
             note: String(values.note || "").trim() || "Umumiy to'lov",
           }).unwrap();
           remaining -= guestPayment;
@@ -658,6 +666,7 @@ function GuestsPage({ tab = "active" }) {
         id: paymentGuestId,
         amount: paymentAmount,
         type: values.type,
+        paymentDate: values.paymentDate?.toISOString(),
         note: String(values.note || "").trim(),
       }).unwrap();
       const updatedGuest = result?.innerData || null;
@@ -701,6 +710,7 @@ function GuestsPage({ tab = "active" }) {
         paymentIndex: editingPayment.index,
         amount: Number(values.amount || 0),
         type: values.type,
+        paymentDate: values.paymentDate?.toISOString(),
         note: String(values.note || "").trim(),
       }).unwrap();
       setHistoryGuest(result?.innerData || historyGuest);
@@ -1664,6 +1674,19 @@ function GuestsPage({ tab = "active" }) {
                 className="payment-type-segmented"
               />
             </Form.Item>
+            <Form.Item
+              name="paymentDate"
+              label="To'lov sanasi va vaqti"
+              rules={[{ required: true, message: "To'lov sanasi majburiy" }]}
+            >
+              <DatePicker
+                style={{ width: "100%" }}
+                showTime={{ format: "HH:mm" }}
+                format="DD.MM.YYYY HH:mm"
+                placeholder="To'lov sanasini tanlang"
+                allowClear={false}
+              />
+            </Form.Item>
             <Form.Item name="note" label="Izoh">
               <Input.TextArea rows={3} />
             </Form.Item>
@@ -2210,6 +2233,19 @@ function GuestsPage({ tab = "active" }) {
                 options={paymentTypeOptions}
                 block
                 className="payment-type-segmented"
+              />
+            </Form.Item>
+            <Form.Item
+              name="paymentDate"
+              label="To'lov sanasi va vaqti"
+              rules={[{ required: true, message: "To'lov sanasi majburiy" }]}
+            >
+              <DatePicker
+                style={{ width: "100%" }}
+                showTime={{ format: "HH:mm" }}
+                format="DD.MM.YYYY HH:mm"
+                placeholder="To'lov sanasini tanlang"
+                allowClear={false}
               />
             </Form.Item>
             <Form.Item name="note" label="Izoh">

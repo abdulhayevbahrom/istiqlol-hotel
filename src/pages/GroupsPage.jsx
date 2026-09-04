@@ -201,6 +201,7 @@ function GroupsPage() {
     groupPaymentForm.setFieldsValue({
       amount: Number(group.debtAmount || 0),
       type: group.mainPaymentType || "naqd",
+      paymentDate: dayjs(),
       note: "",
     });
   };
@@ -217,6 +218,7 @@ function GroupsPage() {
         id: paymentGroup._id,
         amount: Number(values.amount),
         type: values.type,
+        paymentDate: values.paymentDate?.toISOString(),
         note: String(values.note || "").trim(),
       }).unwrap();
       toast.success("Guruh to'lovi qabul qilindi");
@@ -565,6 +567,19 @@ function GroupsPage() {
                   { label: "Plastik", value: "karta" },
                   { label: "Bank", value: "bank" },
                 ]}
+              />
+            </Form.Item>
+            <Form.Item
+              name="paymentDate"
+              label="To'lov sanasi va vaqti"
+              rules={[{ required: true, message: "To'lov sanasi majburiy" }]}
+            >
+              <DatePicker
+                style={{ width: "100%" }}
+                showTime={{ format: "HH:mm" }}
+                format="DD.MM.YYYY HH:mm"
+                placeholder="To'lov sanasini tanlang"
+                allowClear={false}
               />
             </Form.Item>
             <Form.Item name="note" label="Izoh (ixtiyoriy)">

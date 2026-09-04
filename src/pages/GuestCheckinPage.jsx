@@ -52,6 +52,7 @@ const initialValues = {
   checkInAt: dayjs(),
   initialPaymentAmount: 0,
   initialPaymentType: "naqd",
+  initialPaymentDate: dayjs(),
   mainPaymentType: "naqd",
 };
 
@@ -289,6 +290,10 @@ function GuestCheckinPage() {
         ? Number(values.initialPaymentAmount || 0)
         : 0,
       initialPaymentType: !isBookingMode ? values.initialPaymentType : undefined,
+      initialPaymentDate:
+        !isBookingMode && values.initialPaymentDate
+          ? values.initialPaymentDate.toISOString()
+          : undefined,
       mainPaymentType: values.mainPaymentType || "naqd",
     };
     const firstGuest = {
@@ -774,6 +779,15 @@ function GuestCheckinPage() {
                     { label: "Plastik", value: "karta" },
                     { label: "Bank o'tkazmasi", value: "bank" },
                   ]}
+                />
+              </Form.Item>
+              <Form.Item name="initialPaymentDate" label="To'lov sanasi va vaqti">
+                <DatePicker
+                  style={{ width: "100%" }}
+                  showTime={{ format: "HH:mm" }}
+                  format="DD.MM.YYYY HH:mm"
+                  placeholder="To'lov sanasini tanlang"
+                  allowClear={false}
                 />
               </Form.Item>
               <Form.Item name="mainPaymentType" label="Asosiy to'lov usuli">
