@@ -11,6 +11,7 @@ export const navItems = [
     label: "Mijozlar tarixi",
     section: "guests-history",
   },
+  { to: "/receipts", label: "Kvitansiya", section: "receipts" },
   { to: "/guests-debtors", label: "Qarzdorlar", section: "guests-debtors" },
   { to: "/attendance", label: "Davomat", section: "attendance" },
   { to: "/services", label: "Xizmatlar", section: "services" },

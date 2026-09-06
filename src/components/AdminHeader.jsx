@@ -17,6 +17,7 @@ const titles = {
   "/guest-checkin": "Yangi Mehmon",
   "/guests-active": "Active Mijozlar",
   "/guests-history": "Mijozlar Tarixi",
+  "/receipts": "Kvitansiya",
   "/guests-debtors": "Qarzdorlar",
   "/groups": "Guruhlar",
   "/attendance": "Davomat",

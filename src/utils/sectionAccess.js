@@ -3,6 +3,7 @@ const guestSections = [
   "guests-active",
   "guests-history",
   "guests-debtors",
+  "receipts",
   "groups",
 ];
 

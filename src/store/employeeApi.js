@@ -245,6 +245,40 @@ export const employeeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Service"],
     }),
+    createReceipt: builder.mutation({
+      query: (body) => ({
+        url: "/receipt",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Receipt"],
+    }),
+    getReceipts: builder.query({
+      query: (params = {}) => {
+        const search = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value === undefined || value === null || value === "") return;
+          search.set(key, String(value));
+        });
+        return `/receipts?${search.toString()}`;
+      },
+      providesTags: ["Receipt"],
+    }),
+    updateReceipt: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/receipt/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["Receipt"],
+    }),
+    deleteReceipt: builder.mutation({
+      query: (id) => ({
+        url: `/receipt/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Receipt"],
+    }),
     getHallBookings: builder.query({
       query: (tab = "all") =>
         `/hall-bookings${tab ? `?tab=${encodeURIComponent(tab)}` : ""}`,
@@ -408,6 +442,10 @@ export const {
   useCreateServiceMutation,
   useUpdateServiceMutation,
   useDeleteServiceMutation,
+  useCreateReceiptMutation,
+  useGetReceiptsQuery,
+  useUpdateReceiptMutation,
+  useDeleteReceiptMutation,
   useGetHallBookingsQuery,
   useCreateHallBookingMutation,
   useUpdateHallBookingMutation,

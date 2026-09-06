@@ -13,6 +13,7 @@ import AttendancePage from "../pages/AttendancePage";
 import ExpensesPage from "../pages/ExpensesPage";
 import ServicesPage from "../pages/ServicesPage";
 import HallBookingsPage from "../pages/hall/HallBookingsPage";
+import ReceiptsPage from "../pages/ReceiptsPage";
 import SettingsPage from "../pages/SettingsPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import LoginPage from "../pages/LoginPage";
@@ -98,6 +99,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireSection section="guests-history">
             <GuestsPage tab="history" />
+          </RequireSection>
+        ),
+      },
+      {
+        path: "receipts",
+        element: (
+          <RequireSection section="receipts">
+            <ReceiptsPage />
           </RequireSection>
         ),
       },
