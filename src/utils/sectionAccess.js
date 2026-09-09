@@ -8,22 +8,26 @@ const guestSections = [
 ];
 
 export const hasFullAccess = (role = "") =>
-  ["admin", "owner"].includes(String(role).toLowerCase().trim());
+  role === "__system_admin__";
 
 export const hasSectionAccess = (sections = [], requiredSection = "") => {
-  const current = Array.isArray(sections) ? sections : [];
-  if (!requiredSection) return false;
-  if (current.includes(requiredSection)) return true;
+  const current = Array.isArray(sections)
+    ? sections.map((section) => String(section).toLowerCase().trim())
+    : [];
+  const required = String(requiredSection).toLowerCase().trim();
 
-  if (requiredSection.startsWith("guests-") && current.includes("guests")) {
+  if (!required) return false;
+  if (current.includes(required)) return true;
+
+  if (required.startsWith("guests-") && current.includes("guests")) {
     return true;
   }
 
-  if (requiredSection === "groups" && current.includes("guests")) {
+  if (required === "groups" && current.includes("guests")) {
     return true;
   }
 
-  if (requiredSection === "guests") {
+  if (required === "guests") {
     return guestSections.some((section) => current.includes(section));
   }
 

@@ -260,6 +260,7 @@ function GuestsPage({ tab = "active" }) {
     roomNumber: "",
     floor: "",
     category: "",
+    clientType: "",
     startDate: "",
     endDate: "",
   });
@@ -1054,7 +1055,7 @@ function GuestsPage({ tab = "active" }) {
                 </button>
               ) : null}
               <Input
-                placeholder="Ism/Familiya/Passport/Xona"
+                placeholder="Ism/Familiya/Passport/Xona/Tashkilot"
                 value={filters.query}
                 onChange={(e) => onFilterChange({ query: e.target.value })}
               />
@@ -1102,6 +1103,21 @@ function GuestsPage({ tab = "active" }) {
                   options={categoryOptions}
                   onChange={(value) => onFilterChange({ category: value || "" })}
                 />
+                {tab === "debtors" ? (
+                  <Select
+                    allowClear
+                    placeholder="Mijoz turi"
+                    value={filters.clientType || undefined}
+                    options={[
+                      { label: "Oddiy mehmon", value: "guest" },
+                      { label: "Tashkilot", value: "organization" },
+                      { label: "Guruh", value: "group" },
+                    ]}
+                    onChange={(value) =>
+                      onFilterChange({ clientType: value || "" })
+                    }
+                  />
+                ) : null}
                 <RangePicker
                   style={{ width: "100%" }}
                   value={filterRangeValue}
@@ -1197,6 +1213,7 @@ function GuestsPage({ tab = "active" }) {
                     {tab === "active" ? <th></th> : null}
                     <th>F.I.SH</th>
                     <th>Passport</th>
+                    {tab === "debtors" ? <th>Mijoz turi</th> : null}
                     <th>Xona</th>
                     <th>{tab === "history" ? "Kunlar" : "Yashash muddati"}</th>
                     <th>Kunlik</th>
@@ -1248,6 +1265,19 @@ function GuestsPage({ tab = "active" }) {
                         </div>
                       </td>
                       <td data-label="Passport">{guest.passport}</td>
+                      {tab === "debtors" ? (
+                        <td data-label="Mijoz turi">
+                          <span
+                            className={`guest-client-type guest-client-type-${guest.clientType || "guest"}`}
+                          >
+                            {guest.clientType === "group"
+                              ? `Guruh${guest.group?.name ? `: ${guest.group.name}` : ""}`
+                              : guest.clientType === "organization"
+                                ? "Tashkilot"
+                                : "Oddiy mehmon"}
+                          </span>
+                        </td>
+                      ) : null}
                       <td data-label="Xona">
                         <b>{guest.room?.roomNumber || "-"}</b>
                         <br />
@@ -1482,7 +1512,7 @@ function GuestsPage({ tab = "active" }) {
                   {guests.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={tab === "history" ? 15 : tab === "active" ? 14 : 13}
+                        colSpan={tab === "history" ? 15 : tab === "active" ? 14 : 14}
                         className="table-empty"
                       >
                         Hech narsa topilmadi
@@ -1559,6 +1589,19 @@ function GuestsPage({ tab = "active" }) {
             options={categoryOptions}
             onChange={(value) => onFilterChange({ category: value || "" })}
           />
+          {tab === "debtors" ? (
+            <Select
+              allowClear
+              placeholder="Mijoz turi"
+              value={filters.clientType || undefined}
+              options={[
+                { label: "Oddiy mehmon", value: "guest" },
+                { label: "Tashkilot", value: "organization" },
+                { label: "Guruh", value: "group" },
+              ]}
+              onChange={(value) => onFilterChange({ clientType: value || "" })}
+            />
+          ) : null}
           <RangePicker
             style={{ width: "100%" }}
             value={filterRangeValue}
@@ -1586,6 +1629,7 @@ function GuestsPage({ tab = "active" }) {
                   roomNumber: "",
                   floor: "",
                   category: "",
+                  clientType: "",
                   startDate: "",
                   endDate: "",
                 })

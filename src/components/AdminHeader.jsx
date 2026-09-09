@@ -24,6 +24,7 @@ const titles = {
   "/expenses": "Xarajatlar",
   "/finance": "Moliya",
   "/reports": "Hisobotlar",
+  "/client-sales-report": "Mijozlar Hisoboti",
 };
 
 function AdminHeader() {

@@ -19,6 +19,11 @@ export const navItems = [
   { to: "/expenses", label: "Xarajatlar", section: "expenses" },
   // { to: "/finance", label: "Moliya", section: "finance" },
   { to: "/reports", label: "Hisobotlar", section: "reports" },
+  {
+    to: "/client-sales-report",
+    label: "Mijozlar hisoboti",
+    section: "client-sales-report",
+  },
   { to: "/settings", label: "Sozlamalar", section: "settings" },
 ];
 

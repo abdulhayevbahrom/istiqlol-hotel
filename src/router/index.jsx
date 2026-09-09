@@ -9,6 +9,7 @@ import GuestCheckinPage from "../pages/GuestCheckinPage";
 import GroupsPage from "../pages/GroupsPage";
 import FinancePage from "../pages/FinancePage";
 import ReportsPage from "../pages/ReportsPage";
+import ClientSalesReportPage from "../pages/ClientSalesReportPage";
 import AttendancePage from "../pages/AttendancePage";
 import ExpensesPage from "../pages/ExpensesPage";
 import ServicesPage from "../pages/ServicesPage";
@@ -139,6 +140,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireSection section="reports">
             <ReportsPage />
+          </RequireSection>
+        ),
+      },
+      {
+        path: "client-sales-report",
+        element: (
+          <RequireSection section="client-sales-report">
+            <ClientSalesReportPage />
           </RequireSection>
         ),
       },

@@ -48,6 +48,16 @@ const formatDateTime = (value) => {
   return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
 };
 
+const formatDate = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+};
+
 const formatMoney = (value) =>
   `${Number(value || 0).toLocaleString("uz-UZ")} so'm`;
 
@@ -56,19 +66,34 @@ const formatInputNumber = (value) =>
 
 const parseInputNumber = (value) => String(value || "").replace(/[^\d]/g, "");
 
+const capitalizeFirstLetter = (value) => {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
 const formatRoomLabel = (room) => {
   if (!room) return "-";
-  const roomNumber = room.roomNumber || "-";
-  const korpus = room.korpus ? `${room.korpus} korpus` : "";
-  const floor = room.floor ? `${room.floor}-qavat` : "";
-  return [roomNumber, korpus, floor].filter(Boolean).join(" / ");
+  return room.roomNumber || "-";
 };
 
 const hotelNameOptions = [
-  { label: "Istiqlol", value: "Istiqlol" },
-  { label: "Das", value: "Das" },
-  { label: "Versal", value: "Versal" },
-  { label: "Golder Art", value: "Golder Art" },
+  {
+    label: '"Diamond Aziya Servis" MCHJga qarshli Istiqlol mehmonxonasi',
+    value: '"Diamond Aziya Servis" MCHJga qarshli Istiqlol mehmonxonasi',
+  },
+  {
+    label: '"Diamond Aziya Servis" MCHJga qarshli DAS mehmonxonasi',
+    value: '"Diamond Aziya Servis" MCHJga qarshli DAS mehmonxonasi',
+  },
+  {
+    label: '"Diamond Aziya Servis" MCHJga qarshli Versal mehmonxonasi',
+    value: '"Diamond Aziya Servis" MCHJga qarshli Versal mehmonxonasi',
+  },
+  {
+    label: '"Comfort Hostel" MCHJga qarashli Golden Art yotoqxonasi',
+    value: '"Comfort Hostel" MCHJga qarashli Golden Art yotoqxonasi',
+  },
 ];
 
 const uzUnits = [
@@ -109,7 +134,7 @@ const underThousandToWords = (number) => {
 
 const numberToUzbekWords = (value) => {
   const number = Math.floor(Math.max(Number(value || 0), 0));
-  if (!number) return "nol so'm";
+  if (!number) return "Nol so'm";
 
   const scales = ["", "ming", "million", "milliard"];
   const parts = [];
@@ -126,7 +151,7 @@ const numberToUzbekWords = (value) => {
     scaleIndex += 1;
   }
 
-  return `${parts.join(" ")} so'm`;
+  return capitalizeFirstLetter(`${parts.join(" ")} so'm`);
 };
 
 const buildDefaultServices = (guest) => {
@@ -159,8 +184,8 @@ const buildDefaultServices = (guest) => {
 function ReceiptsPage() {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
-  const receiptRef = useRef(null);
-  const user = useSelector((state) => state.auth.user);
+  const previewRef = useRef(null);
+  const printRef = useRef(null);
   const [selectedGuestId, setSelectedGuestId] = useState("");
   const [receipt, setReceipt] = useState(null);
   const [historyQuery, setHistoryQuery] = useState("");
@@ -182,11 +207,6 @@ function ReceiptsPage() {
     useGetReceiptsQuery({ query: historyQuery, page: historyPage, limit: 10 });
 
   const hotelSettings = settingsData?.innerData || {};
-  const cashier =
-    `${user?.firstname || ""} ${user?.lastname || ""}`.trim() ||
-    user?.login ||
-    "-";
-
   const guests = useMemo(() => {
     const map = new Map();
     [
@@ -225,7 +245,6 @@ function ReceiptsPage() {
       services,
       totalAmount: total,
       totalWords: numberToUzbekWords(total),
-      administrator: cashier,
     });
   };
 
@@ -235,11 +254,12 @@ function ReceiptsPage() {
   };
 
   const printReceipt = useReactToPrint({
-    content: () => receiptRef.current,
+    content: () => printRef.current,
     documentTitle: `Kvitansiya-${receipt?.receiptNumber || dayjs().format("YYYY-MM-DD")}`,
     pageStyle: `
-      @page { size: A4 portrait; margin: 10mm; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      @page { size: A4 landscape; margin: 0; }
+      html, body { width: 297mm; height: 210mm; margin: 0 !important; padding: 0 !important; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      * { box-sizing: border-box; }
     `,
   });
 
@@ -280,13 +300,29 @@ function ReceiptsPage() {
     });
   };
 
-  const normalizeReceiptPayload = (values) => ({
+  const normalizeReceiptPayload = (values) => {
+    const services = (values.services || []).map((service) => ({
+      name: String(service?.name || "").trim(),
+      quantity: Number(service?.quantity || 0),
+      price: Number(service?.price || 0),
+      total: Number(service?.total || 0),
+    }));
+    const totalAmount = services.reduce(
+      (sum, service) => sum + Number(service.total || 0),
+      0,
+    );
+    return {
     ...values,
+    services,
+    totalAmount,
+    totalWords: capitalizeFirstLetter(
+      values.totalWords || numberToUzbekWords(totalAmount),
+    ),
     receiptDate: values.receiptDate?.toISOString?.() || values.receiptDate,
     checkInAt: values.checkInAt?.toISOString?.() || values.checkInAt || null,
     checkOutAt: values.checkOutAt?.toISOString?.() || values.checkOutAt || null,
-    printedAt: new Date().toISOString(),
-  });
+    };
+  };
 
   const toPrintableReceipt = (receiptValue) => ({
     ...receiptValue,
@@ -425,22 +461,22 @@ function ReceiptsPage() {
           onValuesChange={onValuesChange}
           onFinish={onFinish}
           initialValues={{
-            hotelName: "Istiqlol",
+            hotelName: '"Diamond Aziya Servis" MCHJga qarshli Istiqlol mehmonxonasi',
             receiptNumber: `KV-${dayjs().format("YYYYMMDD-HHmm")}`,
             receiptDate: dayjs(),
             services: [
               { name: "Mehmonxona xizmati", quantity: 1, price: 0, total: 0 },
             ],
             totalAmount: 0,
-            totalWords: "nol so'm",
-            administrator: cashier,
+            totalWords: "Nol so'm",
+            administrator: "",
           }}
         >
           <Form.Item
             name="hotelName"
-            label="Hotel nomi"
+            label="Korxona nomi"
             className="receipt-hotel-select"
-            rules={[{ required: true, message: "Hotel nomini tanlang" }]}
+            rules={[{ required: true, message: "Korxona nomini tanlang" }]}
           >
             <Select options={hotelNameOptions} />
           </Form.Item>
@@ -487,30 +523,54 @@ function ReceiptsPage() {
             >
               <Input />
             </Form.Item>
-            <Form.Item name="room" label="Yashagan xonasi">
+            <Form.Item
+              name="room"
+              label="Yashagan xonasi"
+              rules={[{ required: true, message: "Xona raqami majburiy" }]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item name="checkInAt" label="Kelgan vaqti">
+            <Form.Item
+              name="checkInAt"
+              label="Kelgan sanasi"
+              rules={[{ required: true, message: "Kelgan sanasi majburiy" }]}
+            >
               <DatePicker
-                showTime
-                format="DD.MM.YYYY HH:mm"
+                format="DD.MM.YYYY"
                 style={{ width: "100%" }}
               />
             </Form.Item>
-            <Form.Item name="checkOutAt" label="Ketgan vaqti">
+            <Form.Item
+              name="checkOutAt"
+              label="Ketgan sanasi"
+              rules={[{ required: true, message: "Ketgan sanasi majburiy" }]}
+            >
               <DatePicker
-                showTime
-                format="DD.MM.YYYY HH:mm"
+                format="DD.MM.YYYY"
                 style={{ width: "100%" }}
               />
             </Form.Item>
-            <Form.Item name="administrator" label="Administrator FIO">
+            <Form.Item
+              name="administrator"
+              label="Administrator FIO"
+              rules={[{ required: true, message: "Administrator FIO majburiy" }]}
+            >
               <Input />
             </Form.Item>
           </div>
 
-          <Form.List name="services">
-            {(fields, { add, remove }) => (
+          <Form.List
+            name="services"
+            rules={[
+              {
+                validator: async (_, services) => {
+                  if (services?.length) return;
+                  throw new Error("Kamida bitta xizmat kiriting");
+                },
+              },
+            ]}
+          >
+            {(fields, { add, remove }, { errors }) => (
               <div className="receipt-services-editor">
                 <div className="row-actions receipt-service-actions">
                   <b>Xizmatlar</b>
@@ -538,7 +598,10 @@ function ReceiptsPage() {
                     >
                       <Input placeholder="Xizmat nomi" />
                     </Form.Item>
-                    <Form.Item name={[field.name, "quantity"]}>
+                    <Form.Item
+                      name={[field.name, "quantity"]}
+                      rules={[{ required: true, message: "Miqdori majburiy" }]}
+                    >
                       <InputNumber
                         min={0}
                         placeholder="Miqdori"
@@ -546,7 +609,10 @@ function ReceiptsPage() {
                         onPaste={preventInvalidAmountPaste}
                       />
                     </Form.Item>
-                    <Form.Item name={[field.name, "price"]}>
+                    <Form.Item
+                      name={[field.name, "price"]}
+                      rules={[{ required: true, message: "Narxi majburiy" }]}
+                    >
                       <InputNumber
                         min={0}
                         placeholder="Narxi"
@@ -556,7 +622,10 @@ function ReceiptsPage() {
                         onPaste={preventInvalidAmountPaste}
                       />
                     </Form.Item>
-                    <Form.Item name={[field.name, "total"]}>
+                    <Form.Item
+                      name={[field.name, "total"]}
+                      rules={[{ required: true, message: "Summasi majburiy" }]}
+                    >
                       <InputNumber
                         min={0}
                         placeholder="Summasi"
@@ -577,12 +646,17 @@ function ReceiptsPage() {
                     </Button>
                   </div>
                 ))}
+                <Form.ErrorList errors={errors} />
               </div>
             )}
           </Form.List>
 
           <div className="receipt-total-grid">
-            <Form.Item name="totalAmount" label="To'lov uchun jami">
+            <Form.Item
+              name="totalAmount"
+              label="To'lov uchun jami"
+              rules={[{ required: true, message: "Jami summa majburiy" }]}
+            >
               <InputNumber
                 min={0}
                 addonAfter="so'm"
@@ -594,7 +668,11 @@ function ReceiptsPage() {
                 onPaste={preventInvalidAmountPaste}
               />
             </Form.Item>
-            <Form.Item name="totalWords" label="To'lov so'z bilan">
+            <Form.Item
+              name="totalWords"
+              label="To'lov so'z bilan"
+              rules={[{ required: true, message: "Summa matni majburiy" }]}
+            >
               <Input suffix={<FiRefreshCw onClick={refreshTotalWords} />} />
             </Form.Item>
           </div>
@@ -616,7 +694,7 @@ function ReceiptsPage() {
         <div className="receipt-preview-shell">
           <div className="receipt-preview-paper">
             <ReceiptDocument
-              refEl={receiptRef}
+              refEl={previewRef}
               receipt={{
                 ...form.getFieldsValue(true),
                 ...(liveReceiptValues || {}),
@@ -726,6 +804,16 @@ function ReceiptsPage() {
           },
         ]}
       />
+      <div style={{ position: "absolute", left: "-99999px", top: 0 }}>
+        <ReceiptPrintSheet
+          refEl={printRef}
+          receipt={receipt || {
+            ...form.getFieldsValue(true),
+            ...(liveReceiptValues || {}),
+          }}
+          hotelSettings={hotelSettings}
+        />
+      </div>
       <Modal
         open={Boolean(editingReceipt)}
         title="Kvitansiyani tahrirlash"
@@ -763,7 +851,7 @@ function ReceiptEditForm({ form, loading, onValuesChange, onFinish }) {
       onFinish={onFinish}
     >
       <div className="receipt-form-grid">
-        <Form.Item name="hotelName" label="Hotel nomi" rules={[{ required: true }]}>
+        <Form.Item name="hotelName" label="Korxona nomi" rules={[{ required: true }]}>
           <Select options={hotelNameOptions} />
         </Form.Item>
         <Form.Item name="receiptNumber" label="Kvitansiya raqami" rules={[{ required: true }]}>
@@ -775,22 +863,32 @@ function ReceiptEditForm({ form, loading, onValuesChange, onFinish }) {
         <Form.Item name="guestName" label="Ismi va familiyasi" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
-        <Form.Item name="room" label="Yashagan xonasi">
+        <Form.Item name="room" label="Yashagan xonasi" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
-        <Form.Item name="checkInAt" label="Kelgan vaqti">
-          <DatePicker showTime format="DD.MM.YYYY HH:mm" style={{ width: "100%" }} />
+        <Form.Item name="checkInAt" label="Kelgan sanasi" rules={[{ required: true }]}>
+          <DatePicker format="DD.MM.YYYY" style={{ width: "100%" }} />
         </Form.Item>
-        <Form.Item name="checkOutAt" label="Ketgan vaqti">
-          <DatePicker showTime format="DD.MM.YYYY HH:mm" style={{ width: "100%" }} />
+        <Form.Item name="checkOutAt" label="Ketgan sanasi" rules={[{ required: true }]}>
+          <DatePicker format="DD.MM.YYYY" style={{ width: "100%" }} />
         </Form.Item>
-        <Form.Item name="administrator" label="Administrator FIO">
+        <Form.Item name="administrator" label="Administrator FIO" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
       </div>
 
-      <Form.List name="services">
-        {(fields, { add, remove }) => (
+      <Form.List
+        name="services"
+        rules={[
+          {
+            validator: async (_, services) => {
+              if (services?.length) return;
+              throw new Error("Kamida bitta xizmat kiriting");
+            },
+          },
+        ]}
+      >
+        {(fields, { add, remove }, { errors }) => (
           <div className="receipt-services-editor">
             <div className="row-actions receipt-service-actions">
               <b>Xizmatlar</b>
@@ -810,13 +908,13 @@ function ReceiptEditForm({ form, loading, onValuesChange, onFinish }) {
                 <Form.Item name={[field.name, "name"]} rules={[{ required: true }]}>
                   <Input placeholder="Xizmat nomi" />
                 </Form.Item>
-                <Form.Item name={[field.name, "quantity"]}>
+                <Form.Item name={[field.name, "quantity"]} rules={[{ required: true }]}>
                   <InputNumber min={0} onKeyDown={blockNonIntegerKeys} onPaste={preventInvalidAmountPaste} />
                 </Form.Item>
-                <Form.Item name={[field.name, "price"]}>
+                <Form.Item name={[field.name, "price"]} rules={[{ required: true }]}>
                   <InputNumber min={0} formatter={formatInputNumber} parser={parseInputNumber} onKeyDown={blockNonIntegerKeys} onPaste={preventInvalidAmountPaste} />
                 </Form.Item>
-                <Form.Item name={[field.name, "total"]}>
+                <Form.Item name={[field.name, "total"]} rules={[{ required: true }]}>
                   <InputNumber min={0} formatter={formatInputNumber} parser={parseInputNumber} onKeyDown={blockNonIntegerKeys} onPaste={preventInvalidAmountPaste} />
                 </Form.Item>
                 <Button danger icon={<FiTrash2 />} className="receipt-remove-btn" onClick={() => remove(field.name)}>
@@ -824,15 +922,16 @@ function ReceiptEditForm({ form, loading, onValuesChange, onFinish }) {
                 </Button>
               </div>
             ))}
+            <Form.ErrorList errors={errors} />
           </div>
         )}
       </Form.List>
 
       <div className="receipt-total-grid">
-        <Form.Item name="totalAmount" label="To'lov uchun jami">
+        <Form.Item name="totalAmount" label="To'lov uchun jami" rules={[{ required: true }]}>
           <InputNumber min={0} addonAfter="so'm" style={{ width: "100%" }} formatter={formatInputNumber} parser={parseInputNumber} onChange={refreshWords} onKeyDown={blockNonIntegerKeys} onPaste={preventInvalidAmountPaste} />
         </Form.Item>
-        <Form.Item name="totalWords" label="To'lov so'z bilan">
+        <Form.Item name="totalWords" label="To'lov so'z bilan" rules={[{ required: true }]}>
           <Input suffix={<FiRefreshCw onClick={refreshWords} />} />
         </Form.Item>
       </div>
@@ -848,7 +947,9 @@ function ReceiptEditForm({ form, loading, onValuesChange, onFinish }) {
 
 function ReceiptDocument({ refEl, receipt, hotelSettings }) {
   const services = receipt?.services || [];
-  const hotelName = receipt?.hotelName || "Istiqlol";
+  const companyName =
+    receipt?.hotelName ||
+    '"Diamond Aziya Servis" MCHJga qarshli Istiqlol mehmonxonasi';
   return (
     <div ref={refEl} className="hotel-receipt-a4 receipt-das-a4">
       <div className="hotel-receipt-head">
@@ -859,8 +960,8 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
             className="hotel-receipt-logo"
           />
         ) : null}
-        <h1>{hotelName}</h1>
-        <p>Namangan Davlatobod I.Karimov ko'cha 20-uy</p>
+        <h1>{companyName}</h1>
+        <p>Namangan shahar Davlatobod tumani To'quvchi MFY I.Karimov ko'cha 20-uy</p>
         <p>Tel: +998 78 223 00 15</p>
         <h2>Kvitansiya</h2>
       </div>
@@ -870,7 +971,7 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
           <b>Kvitansiya raqami:</b> {receipt?.receiptNumber || "-"}
         </div>
         <div>
-          <b>Kvitansiya sanasi:</b> {formatDateTime(receipt?.receiptDate)}
+          <b>Kvitansiya sanasi:</b> {formatDate(receipt?.receiptDate)}
         </div>
         <div>
           <b>Ismi va familiyasi:</b> {receipt?.guestName || "-"}
@@ -879,10 +980,10 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
           <b>Yashagan xonasi:</b> {receipt?.room || "-"}
         </div>
         <div>
-          <b>Kelgan vaqti:</b> {formatDateTime(receipt?.checkInAt)}
+          <b>Kelgan sanasi:</b> {formatDate(receipt?.checkInAt)}
         </div>
         <div>
-          <b>Ketgan vaqti:</b> {formatDateTime(receipt?.checkOutAt)}
+          <b>Ketgan sanasi:</b> {formatDate(receipt?.checkOutAt)}
         </div>
       </div>
 
@@ -915,7 +1016,8 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
 
       <div className="receipt-das-total">
         <div>
-          <b>To'lov so'z bilan:</b> {receipt?.totalWords || "-"}
+          <b>To'lov so'z bilan:</b>{" "}
+          {capitalizeFirstLetter(receipt?.totalWords) || "-"}
         </div>
         <div>
           <b>To'lov uchun jami:</b> {formatMoney(receipt?.totalAmount)}
@@ -926,15 +1028,19 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
         <div>
           <b>Administrator FIO:</b> {receipt?.administrator || "-"}
         </div>
-        <div>
-          <b>Chop etilgan:</b>{" "}
-          {formatDateTime(receipt?.printedAt || new Date())}
-        </div>
       </div>
       <div className="hotel-receipt-thankyou">
-        {hotelSettings?.receiptThankYouText ||
-          "Ushbu narx ichiga barcha soliqlar va yig'imlar kiritilgan."}
+        Ushbu narx ichiga barcha soliq va yig'imlar kiritilgan.
       </div>
+    </div>
+  );
+}
+
+function ReceiptPrintSheet({ refEl, receipt, hotelSettings }) {
+  return (
+    <div ref={refEl} className="receipt-print-landscape">
+      <ReceiptDocument receipt={receipt} hotelSettings={hotelSettings} />
+      <ReceiptDocument receipt={receipt} hotelSettings={hotelSettings} />
     </div>
   );
 }

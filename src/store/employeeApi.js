@@ -120,8 +120,15 @@ export const employeeApi = apiSlice.injectEndpoints({
       invalidatesTags: ["Guest", "Room"],
     }),
     getGroupBookings: builder.query({
-      query: ({ tab = "active", page = 1, limit = 20 } = {}) =>
-        `/group-bookings?tab=${encodeURIComponent(tab)}&page=${page}&limit=${limit}`,
+      query: ({ tab = "active", page = 1, limit = 20, query = "" } = {}) => {
+        const search = new URLSearchParams({
+          tab,
+          page: String(page),
+          limit: String(limit),
+        });
+        if (query) search.set("query", query);
+        return `/group-bookings?${search.toString()}`;
+      },
       providesTags: ["GroupBooking", "Guest"],
     }),
     createGroupBooking: builder.mutation({
@@ -352,6 +359,32 @@ export const employeeApi = apiSlice.injectEndpoints({
     getDailyReport: builder.query({
       query: (date) => `/reports-daily?date=${encodeURIComponent(String(date || ""))}`,
     }),
+    getClientSalesReport: builder.query({
+      query: ({
+        month = "",
+        from = "",
+        to = "",
+        type = "",
+        query = "",
+        clientType = "",
+        page = 1,
+        limit = 30,
+      } = {}) => {
+        const search = new URLSearchParams();
+        search.set("page", String(page));
+        search.set("limit", String(limit));
+        if (from && to) {
+          search.set("from", String(from));
+          search.set("to", String(to));
+        } else if (month) {
+          search.set("month", String(month));
+        }
+        if (type) search.set("type", String(type));
+        if (query) search.set("query", String(query));
+        if (clientType) search.set("clientType", String(clientType));
+        return `/reports-client-sales?${search.toString()}`;
+      },
+    }),
     createExpense: builder.mutation({
       query: (body) => ({
         url: "/expense",
@@ -456,6 +489,7 @@ export const {
   useGetDashboardSummaryQuery,
   useGetReportsSummaryQuery,
   useGetDailyReportQuery,
+  useGetClientSalesReportQuery,
   useCreateExpenseMutation,
   useUpdateExpenseMutation,
   useDeleteExpenseMutation,

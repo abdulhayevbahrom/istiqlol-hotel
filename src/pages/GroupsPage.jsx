@@ -40,6 +40,7 @@ const formatDate = (value) =>
 function GroupsPage() {
   const [tab, setTab] = useState("active");
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
   const [expandedGroupIds, setExpandedGroupIds] = useState([]);
   const [roomsModalGroup, setRoomsModalGroup] = useState(null);
   const [editingGuest, setEditingGuest] = useState(null);
@@ -63,6 +64,7 @@ function GroupsPage() {
     tab,
     page,
     limit: 20,
+    query,
   });
   const groupsPayload = data?.innerData || { items: [], pagination: {} };
   const groups = groupsPayload.items || [];
@@ -247,6 +249,19 @@ function GroupsPage() {
             { key: "history", label: "Guruhlar tarixi" },
           ]}
         />
+
+        <div className="groups-filter-row">
+          <Input
+            allowClear
+            placeholder="Guruh, mehmon yoki tashkilot bo'yicha qidirish"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+              setExpandedGroupIds([]);
+            }}
+          />
+        </div>
 
         {isLoading || isFetching ? (
           <div className="groups-loading"><Spin /></div>

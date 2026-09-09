@@ -49,6 +49,7 @@ const iconByPath = {
   "/expenses": FiDollarSign,
   "/finance": FiDollarSign,
   "/reports": FiClipboard,
+  "/client-sales-report": FiBarChart2,
   "/settings": FiSettings,
 };
 

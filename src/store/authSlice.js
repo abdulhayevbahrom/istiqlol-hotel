@@ -28,7 +28,7 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.refreshToken = "";
       state.user = {
-        role: "admin",
+        role: "__system_admin__",
         firstname: "Admin",
         lastname: "",
         sections: allSections,

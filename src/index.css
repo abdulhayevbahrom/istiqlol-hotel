@@ -176,6 +176,168 @@ a {
   min-height: 240px;
 }
 
+.access-denied-page {
+  min-height: calc(100vh - 100px);
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  justify-content: center;
+  gap: 18px;
+  padding: 52px 32px;
+  background:
+    linear-gradient(90deg, rgba(201, 167, 93, 0.16) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, rgba(201, 167, 93, 0.1), transparent 42%);
+  background-size: 54px 54px, 100% 100%;
+}
+
+.access-denied-panel {
+  width: min(860px, 100%);
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 34px;
+  align-items: center;
+  padding: 0;
+}
+
+.access-denied-visual {
+  width: 150px;
+  height: 150px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #1f2f46;
+  color: #f1d38a;
+  box-shadow:
+    0 0 0 12px rgba(201, 167, 93, 0.12),
+    0 22px 50px rgba(31, 47, 70, 0.18);
+}
+
+.access-denied-copy {
+  display: grid;
+  gap: 12px;
+  border-left: 3px solid rgba(201, 167, 93, 0.55);
+  padding-left: 28px;
+}
+
+.access-denied-kicker {
+  width: fit-content;
+  color: #a47a23;
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.access-denied-copy h2 {
+  margin: 0;
+  color: var(--hotel-navy);
+  font-size: 48px;
+  line-height: 1.05;
+}
+
+.access-denied-copy p {
+  margin: 0;
+  max-width: 520px;
+  color: #5f6b7a;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.access-denied-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.access-denied-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 15px;
+  border-radius: 10px;
+  font-weight: 800;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.access-denied-action.primary {
+  border: 1px solid var(--hotel-gold-dark);
+  background: var(--hotel-gold);
+  color: var(--hotel-navy);
+  box-shadow: 0 10px 22px rgba(168, 137, 73, 0.22);
+}
+
+.access-denied-action.secondary {
+  border: 1px solid #cdbb9a;
+  background: rgba(255, 250, 241, 0.72);
+  color: #654d1e;
+}
+
+.access-denied-action:hover,
+.access-denied-action:focus {
+  transform: translateY(-1px);
+}
+
+.access-denied-action.primary:hover,
+.access-denied-action.primary:focus {
+  background: #d1b174;
+  color: var(--hotel-navy);
+  box-shadow: 0 14px 28px rgba(168, 137, 73, 0.28);
+}
+
+.access-denied-action.secondary:hover,
+.access-denied-action.secondary:focus {
+  background: #fff8ec;
+  color: #4f3c18;
+  box-shadow: 0 10px 22px rgba(47, 39, 24, 0.1);
+}
+
+@media (max-width: 620px) {
+  .access-denied-page {
+    min-height: calc(100vh - 76px);
+    align-items: stretch;
+    padding: 20px 12px 96px;
+  }
+
+  .access-denied-panel {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 0;
+  }
+
+  .access-denied-visual {
+    width: 86px;
+    height: 86px;
+    box-shadow:
+      0 0 0 8px rgba(201, 167, 93, 0.12),
+      0 14px 32px rgba(31, 47, 70, 0.16);
+  }
+
+  .access-denied-copy {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .access-denied-copy h2 {
+    font-size: 34px;
+  }
+
+  .access-denied-action {
+    width: 100%;
+    min-height: 46px;
+    padding-inline: 12px;
+    text-align: center;
+  }
+}
+
 .employee-page .ant-tabs-tab {
   padding-top: 0 !important;
 }
@@ -674,6 +836,32 @@ a {
 .guest-pill-regular {
   color: #475569;
   /* background: #eef2f7; */
+}
+
+.guest-client-type {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.guest-client-type-guest {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.guest-client-type-organization {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.guest-client-type-group {
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
 .vip-state-icon {
@@ -1634,6 +1822,25 @@ a {
   border: 1px solid #d8cab3;
   border-radius: 12px;
   background: #fff;
+}
+
+.groups-filter-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 14px;
+}
+
+.groups-filter-row .ant-input-affix-wrapper {
+  width: min(420px, 100%);
+  border-color: #d8cab3;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.groups-filter-row .ant-input-affix-wrapper:hover,
+.groups-filter-row .ant-input-affix-wrapper-focused {
+  border-color: #b99958;
+  box-shadow: 0 0 0 2px rgba(185, 153, 88, 0.14);
 }
 
 .groups-table {
@@ -2969,7 +3176,7 @@ a {
   padding: 16mm 14mm;
   background: #fff;
   color: #1b1b1b;
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: "Times New Roman", Times, serif;
   font-size: 13px;
 }
 
@@ -2982,8 +3189,9 @@ a {
 
 .hotel-receipt-head h1 {
   margin: 0;
-  font-size: 28px;
-  letter-spacing: 1px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
   color: #1f2f46;
 }
 
@@ -3001,7 +3209,7 @@ a {
 
 .hotel-receipt-head h2 {
   margin: 10px 0 0;
-  color: #7d5f2a;
+  color: #000;
   font-size: 18px;
 }
 
@@ -3270,6 +3478,7 @@ a {
 
 .receipt-das-a4 .ant-table {
   color: #1b1b1b;
+  font-family: "Times New Roman", Times, serif;
   font-size: 12px;
 }
 
@@ -3279,10 +3488,91 @@ a {
   padding: 6px 8px;
 }
 
+.receipt-das-a4 .ant-table-small .ant-table-thead > tr > th {
+  text-align: center !important;
+}
+
 .receipt-das-a4 .ant-table-wrapper .ant-table,
 .receipt-das-a4 .ant-table-wrapper .ant-table-container,
 .receipt-das-a4 .ant-table-wrapper .ant-table-cell {
   border-color: #111 !important;
+}
+
+.receipt-print-landscape {
+  width: 297mm;
+  height: 210mm;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #fff;
+  color: #111;
+  overflow: hidden;
+  font-family: "Times New Roman", Times, serif;
+  box-sizing: border-box;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+.receipt-print-landscape .hotel-receipt-a4 {
+  width: 100%;
+  min-width: 0;
+  height: 210mm;
+  min-height: 210mm;
+  max-height: 210mm;
+  padding: 7mm 7mm;
+  box-shadow: none;
+  font-size: 10.5px;
+  overflow: hidden;
+  box-sizing: border-box;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.receipt-print-landscape .hotel-receipt-a4:first-child {
+  border-right: 1px dashed #777;
+}
+
+.receipt-print-landscape .hotel-receipt-head {
+  padding-bottom: 5px;
+  margin-bottom: 7px;
+}
+
+.receipt-print-landscape .hotel-receipt-head h1 {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.receipt-print-landscape .hotel-receipt-head h2 {
+  margin-top: 5px;
+  font-size: 13px;
+}
+
+.receipt-print-landscape .hotel-receipt-grid {
+  gap: 4px 8px;
+  margin-bottom: 7px;
+}
+
+.receipt-print-landscape .receipt-das-a4 .ant-table {
+  font-size: 9.5px;
+}
+
+.receipt-print-landscape .receipt-das-a4 .ant-table-small .ant-table-thead > tr > th,
+.receipt-print-landscape .receipt-das-a4 .ant-table-small .ant-table-tbody > tr > td {
+  padding: 4px 5px;
+}
+
+.receipt-print-landscape .receipt-das-total {
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 10.5px;
+}
+
+.receipt-print-landscape .hotel-receipt-footer {
+  margin-top: 12px;
+}
+
+.receipt-print-landscape .hotel-receipt-thankyou {
+  margin-top: 8px;
+  font-size: 10px;
 }
 
 .receipt-das-total {
