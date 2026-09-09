@@ -794,6 +794,34 @@ a {
   gap: 8px;
 }
 
+.guests-inner-tabs .ant-tabs-nav {
+  margin: 0 0 14px;
+}
+
+.guests-inner-tabs .ant-tabs-nav::before {
+  border-bottom-color: #ead8b8;
+}
+
+.guests-inner-tabs .ant-tabs-tab {
+  padding: 8px 14px;
+  border-radius: 10px 10px 0 0;
+  font-weight: 800;
+}
+
+.guests-inner-tabs .ant-tabs-tab-active {
+  background: #fff5e4;
+}
+
+.guests-inner-tabs .ant-tabs-tab-btn,
+.guests-inner-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #2b3851;
+}
+
+.guests-inner-tabs .ant-tabs-ink-bar {
+  background: #c89d45;
+  height: 3px;
+}
+
 .guests-table-wrap .table th {
   background: #f3e7d2;
   color: #4b3b1f;
@@ -804,6 +832,10 @@ a {
 
 .guests-table-wrap .table tbody tr:hover td {
   background: #f9edd8 !important;
+}
+
+.guests-table-wrap .table tbody tr.guest-booking-due-row td {
+  background: #fff1f0;
 }
 
 .guest-pill {
@@ -3580,6 +3612,17 @@ a {
   gap: 8px;
   margin-top: 18px;
   font-size: 14px;
+}
+
+.receipt-das-tax-note {
+  color: #5f6b7a;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: -2px;
+}
+
+.hotel-receipt-thankyou:empty {
+  display: none;
 }
 
 @media (max-width: 1180px) {

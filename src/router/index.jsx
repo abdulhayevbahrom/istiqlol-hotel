@@ -16,6 +16,7 @@ import ServicesPage from "../pages/ServicesPage";
 import HallBookingsPage from "../pages/hall/HallBookingsPage";
 import ReceiptsPage from "../pages/ReceiptsPage";
 import SettingsPage from "../pages/SettingsPage";
+import AuditLogsPage from "../pages/AuditLogsPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import LoginPage from "../pages/LoginPage";
 import ForbiddenPage from "../pages/ForbiddenPage";
@@ -180,6 +181,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireSection section="settings">
             <SettingsPage />
+          </RequireSection>
+        ),
+      },
+      {
+        path: "audit-logs",
+        element: (
+          <RequireSection section="audit-logs">
+            <AuditLogsPage />
           </RequireSection>
         ),
       },

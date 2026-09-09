@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AutoComplete,
   Button,
   Checkbox,
   DatePicker,
@@ -12,6 +13,7 @@ import {
   Popconfirm,
   Segmented,
   Select,
+  Tabs,
   Tag,
 } from "antd";
 import { useSelector } from "react-redux";
@@ -31,12 +33,16 @@ import {
   FiTrash2,
   FiXCircle,
   FiRefreshCw,
+  FiUserCheck,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import {
   useAddGuestServiceMutation,
   useAddGuestPaymentMutation,
   useUpdateGuestPaymentMutation,
   useCheckoutGuestMutation,
+  useActivateBookedGuestMutation,
+  useCancelBookedGuestMutation,
   useContinueGuestStayMutation,
   useCheckoutGuestsBulkMutation,
   useDecideVipRequestMutation,
@@ -53,6 +59,7 @@ import {
   blockNonIntegerKeys,
   preventInvalidAmountPaste,
 } from "../utils/numberFormat";
+import { organizationOptions } from "../constants/organizations";
 import dayjs from "dayjs";
 
 const getCurrentStayDay = (checkInAt, checkoutTime = "12:00") => {
@@ -251,6 +258,8 @@ function GuestsPage({ tab = "active" }) {
   const [isMobileFilters, setIsMobileFilters] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 900 : false,
   );
+  const [activeListTab, setActiveListTab] = useState("active");
+  const effectiveTab = tab === "active" ? activeListTab : tab;
 
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -265,7 +274,7 @@ function GuestsPage({ tab = "active" }) {
     endDate: "",
   });
 
-  const shouldLoadVipRequests = tab === "active";
+  const shouldLoadVipRequests = tab === "active" && activeListTab === "active";
   const { data: vipRequestsData, refetch: refetchVipRequests } =
     useGetVipRequestsQuery("pending", {
       skip: !shouldLoadVipRequests,
@@ -273,12 +282,12 @@ function GuestsPage({ tab = "active" }) {
 
   const queryParams = useMemo(
     () => ({
-      tab,
+      tab: effectiveTab,
       page,
       limit: GUESTS_PAGE_SIZE,
       ...filters,
     }),
-    [tab, page, filters],
+    [effectiveTab, page, filters],
   );
 
   const {
@@ -355,11 +364,11 @@ function GuestsPage({ tab = "active" }) {
 
   useEffect(() => {
     setPage(1);
-  }, [tab]);
+  }, [effectiveTab]);
 
   useEffect(() => {
     setSelectedGuestIds([]);
-  }, [tab, page, filters]);
+  }, [effectiveTab, page, filters]);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -416,6 +425,10 @@ function GuestsPage({ tab = "active" }) {
   const [updateGuest, { isLoading: updating }] = useUpdateGuestMutation();
   const [checkoutGuest, { isLoading: checkingOut }] =
     useCheckoutGuestMutation();
+  const [activateBookedGuest, { isLoading: activatingBooking }] =
+    useActivateBookedGuestMutation();
+  const [cancelBookedGuest, { isLoading: cancellingBooking }] =
+    useCancelBookedGuestMutation();
   const [continueGuestStay, { isLoading: continuingStay }] =
     useContinueGuestStayMutation();
   const [checkoutGuestsBulk, { isLoading: bulkCheckingOut }] =
@@ -732,6 +745,26 @@ function GuestsPage({ tab = "active" }) {
     }
   };
 
+  const onActivateBooking = async (id) => {
+    try {
+      const result = await activateBookedGuest(id).unwrap();
+      toast.success(result?.message || "Bron aktiv qilindi");
+      setActiveListTab("active");
+    } catch (err) {
+      toast.error(err?.data?.message || "Bronni aktiv qilishda xatolik");
+    }
+  };
+
+  const onCancelBooking = async (id) => {
+    try {
+      const result = await cancelBookedGuest(id).unwrap();
+      toast.success(result?.message || "Bron bekor qilindi");
+      setSelectedGuestIds([]);
+    } catch (err) {
+      toast.error(err?.data?.message || "Bronni bekor qilishda xatolik");
+    }
+  };
+
   const onBulkCheckout = async () => {
     if (!selectedGuestIds.length) {
       toast.info("Kamida 1 ta mehmonni tanlang");
@@ -821,7 +854,7 @@ function GuestsPage({ tab = "active" }) {
         payload.checkOutAt = values.checkOutAt.toISOString();
       }
       if (editGuestStatus === "booked" && values.bookedForAt) {
-        payload.bookedForAt = values.bookedForAt.format("YYYY-MM-DD");
+        payload.bookedForAt = values.bookedForAt.toISOString();
       }
 
       if (values.vip === true) payload.vip = true;
@@ -994,10 +1027,14 @@ function GuestsPage({ tab = "active" }) {
     if (start && end && start.isValid() && end.isValid()) return [start, end];
     return null;
   }, [filters.endDate, filters.startDate]);
+  const isActiveGuestsTab = effectiveTab === "active";
+  const isBookedGuestsTab = effectiveTab === "booked";
+  const isHistoryTab = effectiveTab === "history";
+  const isDebtorsTab = effectiveTab === "debtors";
   const checkoutSelectableGuests = useMemo(
     () =>
       guests.filter(
-        (guest) => guest.status === "active" || (guest.status === "booked" && guest.group),
+        (guest) => guest.status === "active",
       ),
     [guests],
   );
@@ -1015,9 +1052,16 @@ function GuestsPage({ tab = "active" }) {
   );
   const hasGuestsFromMultipleRooms = selectedRoomIds.size > 1;
   const allVisibleSelected =
-    tab === "active" &&
+    isActiveGuestsTab &&
     checkoutSelectableGuests.length > 0 &&
     checkoutSelectableGuests.every((guest) => selectedGuestIds.includes(guest._id));
+  const tableEmptyColSpan = isHistoryTab
+    ? 15
+    : isActiveGuestsTab
+      ? 14
+      : isBookedGuestsTab
+        ? 13
+        : 14;
 
   return (
     <div className="employee-page guests-page">
@@ -1028,6 +1072,22 @@ function GuestsPage({ tab = "active" }) {
             decidingVip={decidingVip}
             vipDecisionState={vipDecisionState}
             onDecideVip={onDecideVip}
+          />
+        ) : null}
+
+        {tab === "active" ? (
+          <Tabs
+            className="guests-inner-tabs"
+            activeKey={activeListTab}
+            onChange={(key) => {
+              setActiveListTab(key);
+              setPage(1);
+              setSelectedGuestIds([]);
+            }}
+            items={[
+              { key: "active", label: "Yashayotgan mijozlar" },
+              { key: "booked", label: "Bronlar" },
+            ]}
           />
         ) : null}
 
@@ -1103,7 +1163,7 @@ function GuestsPage({ tab = "active" }) {
                   options={categoryOptions}
                   onChange={(value) => onFilterChange({ category: value || "" })}
                 />
-                {tab === "debtors" ? (
+                {isDebtorsTab ? (
                   <Select
                     allowClear
                     placeholder="Mijoz turi"
@@ -1132,7 +1192,7 @@ function GuestsPage({ tab = "active" }) {
                 />
               </>
             ) : null}
-            {tab === "debtors" ? (
+            {isDebtorsTab ? (
               <div className="guests-filter-actions">
                 <Dropdown
                   menu={debtorsActionsMenu}
@@ -1155,7 +1215,7 @@ function GuestsPage({ tab = "active" }) {
           <PageLoader />
         ) : (
           <>
-            {tab === "active" ? (
+            {isActiveGuestsTab ? (
               <div className="guests-bulk-actions">
                 <Checkbox
                   checked={allVisibleSelected}
@@ -1210,21 +1270,21 @@ function GuestsPage({ tab = "active" }) {
               <table className="table">
                 <thead>
                   <tr>
-                    {tab === "active" ? <th></th> : null}
+                    {isActiveGuestsTab ? <th></th> : null}
                     <th>F.I.SH</th>
                     <th>Passport</th>
-                    {tab === "debtors" ? <th>Mijoz turi</th> : null}
+                    {isDebtorsTab ? <th>Mijoz turi</th> : null}
                     <th>Xona</th>
-                    <th>{tab === "history" ? "Kunlar" : "Yashash muddati"}</th>
+                    <th>{isHistoryTab ? "Kunlar" : isBookedGuestsTab ? "Bron muddati" : "Yashash muddati"}</th>
                     <th>Kunlik</th>
                     <th>Jami</th>
                     <th>To'langan</th>
                     <th>Qarz</th>
-                    <th>Kelgan sana</th>
-                    {tab === "history" ? <th>Chiqqan sana</th> : null}
-                    {tab === "history" ? <th>Qabul qilgan</th> : null}
-                    {tab === "history" ? <th>Chiqargan</th> : null}
-                    {tab === "active" ? <th>Eslatma</th> : null}
+                    <th>{isBookedGuestsTab ? "Bron sanasi" : "Kelgan sana"}</th>
+                    {isHistoryTab ? <th>Chiqqan sana</th> : null}
+                    {isHistoryTab ? <th>Qabul qilgan</th> : null}
+                    {isHistoryTab ? <th>Chiqargan</th> : null}
+                    {isActiveGuestsTab || isBookedGuestsTab ? <th>Eslatma</th> : null}
                     <th>Turi</th>
                     <th>VIP</th>
                     <th>Amal</th>
@@ -1232,8 +1292,11 @@ function GuestsPage({ tab = "active" }) {
                 </thead>
                 <tbody>
                   {guests.map((guest) => (
-                    <tr key={guest._id}>
-                      {tab === "active" ? (
+                    <tr
+                      key={guest._id}
+                      className={guest.isBookingDue ? "guest-booking-due-row" : ""}
+                    >
+                      {isActiveGuestsTab ? (
                         <td data-label="Tanlash">
                           <Checkbox
                             checked={selectedGuestIds.includes(guest._id)}
@@ -1265,7 +1328,7 @@ function GuestsPage({ tab = "active" }) {
                         </div>
                       </td>
                       <td data-label="Passport">{guest.passport}</td>
-                      {tab === "debtors" ? (
+                      {isDebtorsTab ? (
                         <td data-label="Mijoz turi">
                           <span
                             className={`guest-client-type guest-client-type-${guest.clientType || "guest"}`}
@@ -1288,10 +1351,10 @@ function GuestsPage({ tab = "active" }) {
                           {guest.room?.floor ? ` · ${guest.room.floor}-qavat` : ""}
                         </span>
                       </td>
-                      <td data-label={tab === "history" ? "Kunlar" : "Yashash muddati"}>
+                      <td data-label={isHistoryTab ? "Kunlar" : isBookedGuestsTab ? "Bron muddati" : "Yashash muddati"}>
                         <div className="guest-days-cell">
                           <strong>
-                            {tab === "history"
+                            {isHistoryTab
                               ? getStayedDays(
                                   guest.checkInAt,
                                   guest.checkOutAt,
@@ -1300,7 +1363,7 @@ function GuestsPage({ tab = "active" }) {
                               : guest.stayDays || 1} kun
                           </strong>
                           <small>
-                            {tab === "history"
+                            {isHistoryTab || isBookedGuestsTab
                               ? ""
                               : `Bugun ${getCurrentStayDay(
                                   guest.checkInAt,
@@ -1311,7 +1374,7 @@ function GuestsPage({ tab = "active" }) {
                       </td>
                       <td data-label="Kunlik">
                         {Number(
-                          tab === "active"
+                          isActiveGuestsTab
                             ? guest.currentDailyRate ?? guest.dailyRate
                             : guest.dailyRate || 0,
                         ).toLocaleString()}
@@ -1326,28 +1389,36 @@ function GuestsPage({ tab = "active" }) {
                         {Number(guest.debtAmount || 0).toLocaleString()}
                       </td>
 
-                      <td className="guest-date-time" data-label="Kelgan sana">
-                        {formatDateTime(guest.checkInAt)}
+                      <td className="guest-date-time" data-label={isBookedGuestsTab ? "Bron sanasi" : "Kelgan sana"}>
+                        {formatDateTime(isBookedGuestsTab ? guest.bookedForAt : guest.checkInAt)}
                       </td>
-                      {tab === "history" ? (
+                      {isHistoryTab ? (
                         <td className="guest-date-time" data-label="Chiqqan sana">
                           {formatDateTime(guest.checkOutAt)}
                         </td>
                       ) : null}
-                      {tab === "history" ? (
+                      {isHistoryTab ? (
                         <td data-label="Qabul qilgan">
                           {formatActionBy(guest.acceptedBy)}
                         </td>
                       ) : null}
-                      {tab === "history" ? (
+                      {isHistoryTab ? (
                         <td data-label="Chiqargan">
                           {formatActionBy(guest.checkoutBy)}
                         </td>
                       ) : null}
-                      {tab === "active" ? (
+                      {isActiveGuestsTab || isBookedGuestsTab ? (
                         <td data-label="Eslatma">
                           {guest.status === "booked" ? (
-                            <Tag color="blue">Bron qilingan</Tag>
+                            <Tag color={guest.isBookingDue ? "red" : "blue"}>
+                              {guest.isBookingDue ? (
+                                <>
+                                  <FiAlertTriangle size={12} /> Vaqti keldi
+                                </>
+                              ) : (
+                                "Bron qilingan"
+                              )}
+                            </Tag>
                           ) : guest.isCheckoutOverdue ? (
                             <Tag color="red">Muddat o'tgan</Tag>
                           ) : guest.isCheckoutReminderTime ? (
@@ -1391,7 +1462,7 @@ function GuestsPage({ tab = "active" }) {
                           >
                             <FiEdit2 size={16} />
                           </button>
-                          {tab === "debtors" || tab === "active" ? (
+                          {isDebtorsTab || isActiveGuestsTab ? (
                             <button
                               className="icon-btn"
                               onClick={() => openPaymentModal(guest)}
@@ -1407,7 +1478,7 @@ function GuestsPage({ tab = "active" }) {
                               <FiCreditCard size={16} />
                             </button>
                           ) : null}
-                          {guest.status !== "checked_out" ? (
+                          {guest.status === "active" ? (
                             <button
                               className="icon-btn"
                               onClick={() => openServiceModal(guest)}
@@ -1416,7 +1487,7 @@ function GuestsPage({ tab = "active" }) {
                               <FiPlus size={17} />
                             </button>
                           ) : null}
-                          {guest.status !== "checked_out" ? (
+                          {guest.status === "active" ? (
                             <>
                               {/* <button
                                 className="icon-btn"
@@ -1433,7 +1504,7 @@ function GuestsPage({ tab = "active" }) {
                               >
                                 <FiCreditCard size={16} />
                               </button> */}
-                              {tab === "active" ? (
+                              {isActiveGuestsTab ? (
                                 <Popconfirm
                                   title="Mehmonni chiqarish"
                                   description="Xona avtomatik bo'sh holatga qaytadi"
@@ -1466,7 +1537,40 @@ function GuestsPage({ tab = "active" }) {
                           >
                             <FiClock size={16} />
                           </button>
-                          {tab === "history" ? (
+                          {isBookedGuestsTab ? (
+                            <Popconfirm
+                              title="Bronni aktiv qilish"
+                              description="Mehmon kelgan deb belgilanadi va xona band bo'ladi"
+                              okText="Aktiv qilish"
+                              cancelText="Bekor"
+                              okButtonProps={{ loading: activatingBooking }}
+                              onConfirm={() => onActivateBooking(guest._id)}
+                              overlayClassName="hotel-popconfirm"
+                            >
+                              <button className="icon-btn" title="Aktiv qilish">
+                                <FiUserCheck size={16} />
+                              </button>
+                            </Popconfirm>
+                          ) : null}
+                          {isBookedGuestsTab ? (
+                            <Popconfirm
+                              title="Bronni bekor qilish"
+                              description="Bron ro'yxatdan olib tashlanadi"
+                              okText="Bekor qilish"
+                              cancelText="Yopish"
+                              okButtonProps={{
+                                danger: true,
+                                loading: cancellingBooking,
+                              }}
+                              onConfirm={() => onCancelBooking(guest._id)}
+                              overlayClassName="hotel-popconfirm"
+                            >
+                              <button className="icon-btn" title="Bronni bekor qilish">
+                                <FiTrash2 size={16} />
+                              </button>
+                            </Popconfirm>
+                          ) : null}
+                          {isHistoryTab ? (
                             <button
                               className="icon-btn"
                               title="Jarayonni davom ettirish"
@@ -1475,7 +1579,7 @@ function GuestsPage({ tab = "active" }) {
                               <FiRefreshCw size={16} />
                             </button>
                           ) : null}
-                          {tab === "history" ? (
+                          {isHistoryTab ? (
                             <button
                               className="icon-btn"
                               title="Hisobot"
@@ -1484,7 +1588,7 @@ function GuestsPage({ tab = "active" }) {
                               <FiPrinter size={16} />
                             </button>
                           ) : null}
-                          {canDeleteGuest ? (
+                          {canDeleteGuest && !isBookedGuestsTab ? (
                             <Popconfirm
                               title="Mehmonni o'chirish"
                               description="Ushbu amalni tasdiqlaysizmi?"
@@ -1512,7 +1616,7 @@ function GuestsPage({ tab = "active" }) {
                   {guests.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={tab === "history" ? 15 : tab === "active" ? 14 : 14}
+                        colSpan={tableEmptyColSpan}
                         className="table-empty"
                       >
                         Hech narsa topilmadi
@@ -1589,7 +1693,7 @@ function GuestsPage({ tab = "active" }) {
             options={categoryOptions}
             onChange={(value) => onFilterChange({ category: value || "" })}
           />
-          {tab === "debtors" ? (
+          {isDebtorsTab ? (
             <Select
               allowClear
               placeholder="Mijoz turi"
@@ -1960,7 +2064,16 @@ function GuestsPage({ tab = "active" }) {
               <Input placeholder="name@example.com" />
             </Form.Item>
             <Form.Item name="organization" label="Tashkilot">
-              <Input maxLength={120} placeholder="Ixtiyoriy" />
+              <AutoComplete
+                allowClear
+                options={organizationOptions}
+                placeholder="Ixtiyoriy"
+                filterOption={(input, option) =>
+                  String(option?.value || "")
+                    .toLowerCase()
+                    .includes(String(input || "").toLowerCase())
+                }
+              />
             </Form.Item>
             <Form.Item
               name="room"
@@ -2126,9 +2239,10 @@ function GuestsPage({ tab = "active" }) {
                 label="Bron sanasi"
                 rules={[{ required: true, message: "Bron sanasi majburiy" }]}
               >
-                <DatePicker
-                  style={{ width: "100%" }}
-                  format="DD.MM.YYYY"
+              <DatePicker
+                style={{ width: "100%" }}
+                  showTime={{ format: "HH:mm" }}
+                  format="DD.MM.YYYY HH:mm"
                   disabledDate={(current) =>
                     current &&
                     current.startOf("day").isBefore(dayjs().startOf("day"))

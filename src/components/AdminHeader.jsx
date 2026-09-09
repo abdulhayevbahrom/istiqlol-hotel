@@ -8,7 +8,10 @@ import {
   releaseSocketConnection,
 } from "../config/socketConfig";
 import smsIphoneSound from "../assets/sms_iphone.mp3";
-import { useGetVipRequestsCountQuery } from "../store/employeeApi";
+import {
+  useEmployeeLogoutMutation,
+  useGetVipRequestsCountQuery,
+} from "../store/employeeApi";
 
 const titles = {
   "/dashboard": "Dashboard",
@@ -38,11 +41,21 @@ function AdminHeader() {
   const { data: vipCountData } = useGetVipRequestsCountQuery("pending", {
     skip: !shouldConnectVipSocket,
   });
+  const [employeeLogout] = useEmployeeLogoutMutation();
   const [pendingCount, setPendingCount] = useState(0);
   const title = titles[location.pathname] || "Admin Panel";
   const name = user
     ? `${user.firstname || ""} ${user.lastname || ""}`.trim()
     : "Guest";
+  const handleLogout = async () => {
+    try {
+      await employeeLogout().unwrap();
+    } catch (error) {
+      // Lokal chiqish baribir bajariladi; audit yozuvi tarmoq bo'lsa o'tmasligi mumkin.
+    } finally {
+      dispatch(logout());
+    }
+  };
 
   useEffect(() => {
     const count = Number(vipCountData?.innerData?.count ?? vipCountData?.count);
@@ -132,7 +145,7 @@ function AdminHeader() {
           description="Rostdan ham chiqmoqchimisiz?"
           okText="Ha, chiqish"
           cancelText="Bekor"
-          onConfirm={() => dispatch(logout())}
+          onConfirm={handleLogout}
           overlayClassName="hotel-popconfirm"
         >
           <button className="header-icon-btn" title="Chiqish">

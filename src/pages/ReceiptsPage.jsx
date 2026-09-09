@@ -79,20 +79,16 @@ const formatRoomLabel = (room) => {
 
 const hotelNameOptions = [
   {
-    label: '"Diamond Aziya Servis" MCHJga qarshli Istiqlol mehmonxonasi',
-    value: '"Diamond Aziya Servis" MCHJga qarshli Istiqlol mehmonxonasi',
+    label: "DIAMOND AZIYA SERVIS MCHJ",
+    value: "DIAMOND AZIYA SERVIS MCHJ",
   },
   {
-    label: '"Diamond Aziya Servis" MCHJga qarshli DAS mehmonxonasi',
-    value: '"Diamond Aziya Servis" MCHJga qarshli DAS mehmonxonasi',
+    label: "VERSAL-N PLAZA MCHJ",
+    value: "VERSAL-N PLAZA MCHJ",
   },
   {
-    label: '"Diamond Aziya Servis" MCHJga qarshli Versal mehmonxonasi',
-    value: '"Diamond Aziya Servis" MCHJga qarshli Versal mehmonxonasi',
-  },
-  {
-    label: '"Comfort Hostel" MCHJga qarashli Golden Art yotoqxonasi',
-    value: '"Comfort Hostel" MCHJga qarashli Golden Art yotoqxonasi',
+    label: "COMFORT HOSTEL MCHJ",
+    value: "COMFORT HOSTEL MCHJ",
   },
 ];
 
@@ -461,7 +457,7 @@ function ReceiptsPage() {
           onValuesChange={onValuesChange}
           onFinish={onFinish}
           initialValues={{
-            hotelName: '"Diamond Aziya Servis" MCHJga qarshli Istiqlol mehmonxonasi',
+            hotelName: "DIAMOND AZIYA SERVIS MCHJ",
             receiptNumber: `KV-${dayjs().format("YYYYMMDD-HHmm")}`,
             receiptDate: dayjs(),
             services: [
@@ -949,7 +945,7 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
   const services = receipt?.services || [];
   const companyName =
     receipt?.hotelName ||
-    '"Diamond Aziya Servis" MCHJga qarshli Istiqlol mehmonxonasi';
+    "DIAMOND AZIYA SERVIS MCHJ";
   return (
     <div ref={refEl} className="hotel-receipt-a4 receipt-das-a4">
       <div className="hotel-receipt-head">
@@ -1019,6 +1015,9 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
           <b>To'lov so'z bilan:</b>{" "}
           {capitalizeFirstLetter(receipt?.totalWords) || "-"}
         </div>
+        <div className="receipt-das-tax-note">
+          Ushbu narx ichiga barcha soliq va yig'imlar kiritilgan.
+        </div>
         <div>
           <b>To'lov uchun jami:</b> {formatMoney(receipt?.totalAmount)}
         </div>
@@ -1029,9 +1028,7 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
           <b>Administrator FIO:</b> {receipt?.administrator || "-"}
         </div>
       </div>
-      <div className="hotel-receipt-thankyou">
-        Ushbu narx ichiga barcha soliq va yig'imlar kiritilgan.
-      </div>
+      <div className="hotel-receipt-thankyou" />
     </div>
   );
 }

@@ -1,0 +1,123 @@
+.audit-page {
+  display: grid;
+  gap: 14px;
+}
+
+.audit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.audit-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #172033;
+}
+
+.audit-header p {
+  margin: 6px 0 0;
+  color: #667085;
+}
+
+.audit-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 220px 180px 260px;
+  gap: 12px;
+}
+
+.audit-muted {
+  display: block;
+  margin-top: 3px;
+  color: #667085;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.audit-table-wrap {
+  border-radius: 0;
+}
+
+.audit-table .ant-table {
+  background: transparent;
+}
+
+.audit-table .ant-table-container {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.audit-table .ant-table-thead > tr > th {
+  background: #fffaf1;
+  border-bottom: 1px solid #eadfcb;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 7px 8px;
+  white-space: nowrap;
+}
+
+.audit-table .ant-table-tbody > tr:nth-child(odd) > td {
+  background: #fffaf1;
+}
+
+.audit-table .ant-table-tbody > tr:nth-child(even) > td {
+  background: #fff3df;
+}
+
+.audit-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #eadfcb;
+  color: #222;
+  font-size: 14px;
+  line-height: 1.25;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.audit-table .ant-table-tbody > tr:hover > td {
+  background: #fff7e7 !important;
+}
+
+.audit-table .ant-tag {
+  max-width: 150px;
+  margin-inline-end: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.audit-cell-stack,
+.audit-description {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.audit-cell-stack strong,
+.audit-description > span:first-child,
+.audit-table td > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .audit-page {
+    gap: 12px;
+  }
+
+  .audit-toolbar {
+    grid-template-columns: 1fr;
+  }
+}

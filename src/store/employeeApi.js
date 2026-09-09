@@ -9,6 +9,12 @@ export const employeeApi = apiSlice.injectEndpoints({
         body,
       }),
     }),
+    employeeLogout: builder.mutation({
+      query: () => ({
+        url: "/employee/logout",
+        method: "POST",
+      }),
+    }),
     getEmployees: builder.query({
       query: () => "/employees",
       providesTags: ["Employee"],
@@ -189,6 +195,20 @@ export const employeeApi = apiSlice.injectEndpoints({
     checkoutGuest: builder.mutation({
       query: (id) => ({
         url: `/guest/${id}/checkout`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Guest", "Room"],
+    }),
+    activateBookedGuest: builder.mutation({
+      query: (id) => ({
+        url: `/guest/${id}/activate-booking`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Guest", "Room"],
+    }),
+    cancelBookedGuest: builder.mutation({
+      query: (id) => ({
+        url: `/guest/${id}/cancel-booking`,
         method: "POST",
       }),
       invalidatesTags: ["Guest", "Room"],
@@ -420,6 +440,17 @@ export const employeeApi = apiSlice.injectEndpoints({
       query: () => "/settings",
       providesTags: ["Settings"],
     }),
+    getAuditLogs: builder.query({
+      query: (params = {}) => {
+        const search = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value === undefined || value === null || value === "") return;
+          search.set(key, String(value));
+        });
+        return `/audit-logs?${search.toString()}`;
+      },
+      providesTags: ["AuditLog"],
+    }),
     updateSettings: builder.mutation({
       query: (body) => ({
         url: "/settings",
@@ -440,6 +471,7 @@ export const employeeApi = apiSlice.injectEndpoints({
 
 export const {
   useEmployeeLoginMutation,
+  useEmployeeLogoutMutation,
   useGetEmployeesQuery,
   useCreateEmployeeMutation,
   useUpdateEmployeeMutation,
@@ -467,6 +499,8 @@ export const {
   useAddGuestPaymentMutation,
   useUpdateGuestPaymentMutation,
   useCheckoutGuestMutation,
+  useActivateBookedGuestMutation,
+  useCancelBookedGuestMutation,
   useContinueGuestStayMutation,
   useCheckoutGuestsBulkMutation,
   useDeleteGuestMutation,
@@ -495,6 +529,7 @@ export const {
   useDeleteExpenseMutation,
   useDeleteExpensesBulkMutation,
   useGetSettingsQuery,
+  useGetAuditLogsQuery,
   useUpdateSettingsMutation,
   useSendSupportMessageMutation,
 } = employeeApi;

@@ -25,6 +25,7 @@ export const navItems = [
     section: "client-sales-report",
   },
   { to: "/settings", label: "Sozlamalar", section: "settings" },
+  { to: "/audit-logs", label: "Audit log", section: "audit-logs" },
 ];
 
-export const allSections = navItems.map((item) => item.section);
+export const allSections = [...new Set(navItems.map((item) => item.section))];

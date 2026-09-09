@@ -1,4 +1,5 @@
 import {
+  AutoComplete,
   Button,
   Checkbox,
   DatePicker,
@@ -19,6 +20,7 @@ import {
   useGetSettingsQuery,
   useLazyGetGuestByPassportQuery,
 } from "../store/employeeApi";
+import { organizationOptions } from "../constants/organizations";
 import GroupBookingForm from "./GroupBookingForm";
 
 const DEFAULT_ROOM_CATEGORIES = [
@@ -746,7 +748,16 @@ function GuestCheckinPage() {
               <Input type="email" placeholder="name@example.com" />
             </Form.Item>
             <Form.Item name="organization" label="Tashkilot (ixtiyoriy)">
-              <Input placeholder="Tashkilot nomi" />
+              <AutoComplete
+                allowClear
+                options={organizationOptions}
+                placeholder="Tashkilot nomi"
+                filterOption={(input, option) =>
+                  String(option?.value || "")
+                    .toLowerCase()
+                    .includes(String(input || "").toLowerCase())
+                }
+              />
             </Form.Item>
           </div>
           <Form.Item name="note" label="Izoh">
