@@ -377,7 +377,15 @@ export const employeeApi = apiSlice.injectEndpoints({
       },
     }),
     getDailyReport: builder.query({
-      query: (date) => `/reports-daily?date=${encodeURIComponent(String(date || ""))}`,
+      query: (params = {}) => {
+        const date = typeof params === "string" ? params : params.date;
+        const search = new URLSearchParams();
+        search.set("date", String(date || ""));
+        if (params.includeAllRooms) search.set("includeAllRooms", "true");
+        if (params.korpus) search.set("korpus", String(params.korpus));
+        if (params.floor) search.set("floor", String(params.floor));
+        return `/reports-daily?${search.toString()}`;
+      },
     }),
     getClientSalesReport: builder.query({
       query: ({

@@ -177,6 +177,18 @@ const buildDefaultServices = (guest) => {
     : [{ name: "Mehmonxona xizmati", quantity: 1, price: 0, total: 0 }];
 };
 
+const getGuestReceiptDays = (guest) =>
+  Number(guest?.stayDays || 1);
+
+const getReceiptDays = (receipt) => {
+  const value =
+    receipt?.remainingDays ??
+    receipt?.stayDays ??
+    receipt?.services?.[0]?.quantity;
+  const days = Number(value);
+  return Number.isFinite(days) && days > 0 ? days : null;
+};
+
 function ReceiptsPage() {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -237,7 +249,10 @@ function ReceiptsPage() {
       guestName: `${guest.firstname || ""} ${guest.lastname || ""}`.trim(),
       room: formatRoomLabel(guest.room),
       checkInAt: guest.checkInAt ? dayjs(guest.checkInAt) : null,
-      checkOutAt: guest.checkOutAt ? dayjs(guest.checkOutAt) : null,
+      checkOutAt: guest.checkOutAt || guest.checkoutDueAt
+        ? dayjs(guest.checkOutAt || guest.checkoutDueAt)
+        : null,
+      remainingDays: getGuestReceiptDays(guest),
       services,
       totalAmount: total,
       totalWords: numberToUzbekWords(total),
@@ -317,6 +332,7 @@ function ReceiptsPage() {
     receiptDate: values.receiptDate?.toISOString?.() || values.receiptDate,
     checkInAt: values.checkInAt?.toISOString?.() || values.checkInAt || null,
     checkOutAt: values.checkOutAt?.toISOString?.() || values.checkOutAt || null,
+    remainingDays: Number(values.remainingDays || 0),
     };
   };
 
@@ -553,6 +569,9 @@ function ReceiptsPage() {
             >
               <Input />
             </Form.Item>
+            <Form.Item name="remainingDays" hidden>
+              <InputNumber />
+            </Form.Item>
           </div>
 
           <Form.List
@@ -755,6 +774,23 @@ function ReceiptsPage() {
                       render: (value) => value || "-",
                     },
                     {
+                      title: "Check-in",
+                      dataIndex: "checkInAt",
+                      render: formatDate,
+                    },
+                    {
+                      title: "Check-out",
+                      dataIndex: "checkOutAt",
+                      render: formatDate,
+                    },
+                    {
+                      title: "Qolgan kun",
+                      render: (_, record) => {
+                        const days = getReceiptDays(record);
+                        return days ? `${days} kun` : "-";
+                      },
+                    },
+                    {
                       title: "Jami",
                       dataIndex: "totalAmount",
                       render: formatMoney,
@@ -870,6 +906,9 @@ function ReceiptEditForm({ form, loading, onValuesChange, onFinish }) {
         </Form.Item>
         <Form.Item name="administrator" label="Administrator FIO" rules={[{ required: true }]}>
           <Input />
+        </Form.Item>
+        <Form.Item name="remainingDays" hidden>
+          <InputNumber />
         </Form.Item>
       </div>
 

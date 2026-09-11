@@ -1,7 +1,8 @@
-import { memo, useMemo, useRef, useState } from "react";
-import { Alert, Button, DatePicker, Spin, Tabs } from "antd";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Button, DatePicker, Select, Spin, Tabs } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/uz";
+import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
 import {
@@ -9,6 +10,7 @@ import {
   FiBarChart2,
   FiClipboard,
   FiDollarSign,
+  FiDownload,
   FiFileText,
   FiGrid,
   FiPrinter,
@@ -20,6 +22,7 @@ import PageLoader from "../components/PageLoader";
 import {
   useGetDailyReportQuery,
   useGetReportsSummaryQuery,
+  useGetRoomsQuery,
 } from "../store/employeeApi";
 import "./reports.css";
 
@@ -61,6 +64,21 @@ const HIGHLIGHT_DESTINATIONS = {
   "Qarzdor nazorati": "/guests-debtors",
   "Xizmatlar oqimi": "/services",
 };
+
+const reportHotelNameOptions = [
+  {
+    label: "DIAMOND AZIYA SERVIS MCHJ",
+    value: "DIAMOND AZIYA SERVIS MCHJ",
+  },
+  {
+    label: "VERSAL-N PLAZA MCHJ",
+    value: "VERSAL-N PLAZA MCHJ",
+  },
+  {
+    label: "COMFORT HOSTEL MCHJ",
+    value: "COMFORT HOSTEL MCHJ",
+  },
+];
 
 const createNavigateProps = (navigate, path, label) => ({
   role: "button",
@@ -301,6 +319,442 @@ const getReportMetric = (key, sections = {}) => {
   }
 };
 
+function DailyReportContent({
+  title,
+  emptyText,
+  dailyReportDate,
+  setDailyReportDate,
+  isDailyReportFetching,
+  dailyReport,
+  dailyReportError,
+  dailyGuestRows,
+  dailyExpenses,
+  dailyReportRef,
+  hotelName,
+  onHotelNameChange,
+  printDailyReport,
+  formatRoomLabel,
+  isAccounting = false,
+  accountingFilters = {},
+  accountingFloorOptions = [],
+  onAccountingFilterChange,
+}) {
+  const exportAccountingExcel = () => {
+    const roomRows = dailyGuestRows.map((guest) => [
+      Number(guest.openingPrepayment || 0),
+      Number(guest.openingDebt || 0),
+      `${guest.roomNumber || "-"} ${guest.korpus ? `[${guest.korpus}]` : ""}`.trim(),
+      Number(guest.guestCount || 0),
+      Number(guest.dailyRate || 0),
+      Number(guest.cash || 0),
+      Number(guest.card || 0),
+      Number(guest.transfer || 0),
+      Number(guest.cash || 0) +
+        Number(guest.card || 0) +
+        Number(guest.transfer || 0),
+      guest.fullName || "-",
+      guest.organization || "-",
+      Number(guest.closingPrepayment || 0),
+      Number(guest.closingDebt || 0),
+    ]);
+    const totalRow = [
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.openingPrepayment || 0), 0),
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.openingDebt || 0), 0),
+      "Всего",
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.guestCount || 0), 0),
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.dailyRate || 0), 0),
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.cash || 0), 0),
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.card || 0), 0),
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.transfer || 0), 0),
+      dailyGuestRows.reduce(
+        (sum, row) =>
+          sum +
+          Number(row.cash || 0) +
+          Number(row.card || 0) +
+          Number(row.transfer || 0),
+        0,
+      ),
+      "",
+      "",
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0),
+      dailyGuestRows.reduce((sum, row) => sum + Number(row.closingDebt || 0), 0),
+    ];
+    const expenseRows = dailyExpenses.map((expense) => [
+      expense.title || "-",
+      expense.category || "-",
+      expense.paymentType || "-",
+      Number(expense.amount || 0),
+      expense.note || "-",
+    ]);
+    const expenseTotalRow = [
+      "Jami",
+      "",
+      "",
+      dailyExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
+      "",
+    ];
+    const workbook = XLSX.utils.book_new();
+    const rows = [
+      ["О Т Ч Е Т"],
+      [hotelName],
+      [`" ${dailyReportDate.format("DD")} " ${dailyReportDate.format("MMMM YYYY")}г.`],
+      [],
+      ["BARCHA XONALAR RO'YXATI", "", "", "", "", "", "", "", "", "", "", "", `${dailyGuestRows.length} ta xona`],
+      [
+        "Предоплата",
+        "Задолженность",
+        "№ комнаты",
+        "Кол-во чел.",
+        "Оплата за сутки",
+        "Оплата наличными",
+        "",
+        "",
+        "Всего",
+        "ФИО",
+        "Tashkilot",
+        "Предоплата",
+        "Задолженность",
+      ],
+      ["", "", "", "", "", "Наличия", "Пластиковая карта", "Банковский перевод", "", "", "", "", ""],
+      ...(roomRows.length ? roomRows : [["", "", "", "", "", "", "", "", "", "Xonalar topilmadi", "", "", ""]]),
+      totalRow,
+      [],
+      ["KUNLIK XARAJATLAR", "", "", "", `${dailyExpenses.length} ta xarajat`],
+      ["Nomi", "Kategoriya", "To'lov turi", "Summa", "Izoh"],
+      ...(expenseRows.length
+        ? expenseRows
+        : [["Tanlangan sana uchun xarajat topilmadi", "", "", "", ""]]),
+      ...(expenseRows.length ? [expenseTotalRow] : []),
+    ];
+    const roomsSheet = XLSX.utils.aoa_to_sheet(rows);
+    roomsSheet["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 12 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 12 } },
+      { s: { r: 5, c: 5 }, e: { r: 5, c: 7 } },
+    ];
+    roomsSheet["!cols"] = [
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 28 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 14 },
+    ];
+    XLSX.utils.book_append_sheet(workbook, roomsSheet, "Buxgalter hisoboti");
+    XLSX.writeFile(
+      workbook,
+      `buxgalter-hisoboti-${dailyReportDate.format("YYYY-MM-DD")}.xlsx`,
+      { compression: true },
+    );
+  };
+
+  return (
+    <div className="daily-report-tab">
+      <div className="daily-report-toolbar">
+        <span>Hisobot sanasi</span>
+        <DatePicker
+          allowClear={false}
+          value={dailyReportDate}
+          onChange={(value) => value && setDailyReportDate(value)}
+          disabledDate={(current) =>
+            current &&
+            current.startOf("day").isAfter(dayjs().startOf("day"))
+          }
+          format="DD.MM.YYYY"
+        />
+        <Select
+          value={hotelName}
+          onChange={onHotelNameChange}
+          options={reportHotelNameOptions}
+          className="daily-report-hotel-select"
+        />
+        {isAccounting ? (
+          <>
+            <Select
+              allowClear
+              placeholder="Block"
+              value={accountingFilters.korpus || undefined}
+              onChange={(value) =>
+                onAccountingFilterChange?.({ korpus: value || "" })
+              }
+              options={[
+                { label: "A block", value: "A" },
+                { label: "B block", value: "B" },
+              ]}
+              className="daily-report-filter-select"
+            />
+            <Select
+              allowClear
+              placeholder="Qavat"
+              value={accountingFilters.floor || undefined}
+              onChange={(value) =>
+                onAccountingFilterChange?.({ floor: value || "" })
+              }
+              options={accountingFloorOptions}
+              className="daily-report-filter-select"
+            />
+          </>
+        ) : null}
+        <small></small>
+        {isAccounting ? (
+          <Button
+            icon={<FiDownload size={16} />}
+            disabled={
+              isDailyReportFetching ||
+              !dailyReport ||
+              Boolean(dailyReportError)
+            }
+            onClick={exportAccountingExcel}
+          >
+            Excel
+          </Button>
+        ) : null}
+        <Button
+          type="primary"
+          icon={<FiPrinter size={16} />}
+          disabled={
+            isDailyReportFetching ||
+            !dailyReport ||
+            Boolean(dailyReportError)
+          }
+          onClick={printDailyReport}
+        >
+          Chop etish
+        </Button>
+      </div>
+
+      {dailyReportError ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Kunlik hisobotni olishda xatolik yuz berdi"
+        />
+      ) : null}
+
+      <Spin spinning={isDailyReportFetching} tip="Hisobot yuklanmoqda...">
+        <div className="daily-report-preview-wrap">
+          <div ref={dailyReportRef} className="daily-report-sheet">
+            <header className="daily-report-excel-head">
+              <strong>О Т Ч Е Т</strong>
+              <span>
+                {isAccounting
+                  ? hotelName
+                  : `наличные проживания в гостинице "${hotelName}"`}
+              </span>
+              <em>
+                " {dailyReportDate.format("DD")} "{" "}
+                {dailyReportDate.format("MMMM YYYY")}г.
+              </em>
+            </header>
+
+            <section className="daily-report-section">
+              <div className="daily-report-section-head">
+                <h2>{title}</h2>
+                <span>{dailyGuestRows.length} ta xona</span>
+              </div>
+              <table className="daily-report-table daily-report-guest-table">
+                <colgroup>
+                  <col className="report-col-prepayment" />
+                  <col className="report-col-debt" />
+                  <col className="report-col-room" />
+                  <col className="report-col-count" />
+                  <col className="report-col-daily" />
+                  <col className="report-col-cash" />
+                  <col className="report-col-card" />
+                  <col className="report-col-transfer" />
+                  <col className="report-col-total" />
+                  <col className="report-col-name" />
+                  <col className="report-col-name" />
+                  <col className="report-col-prepayment-end" />
+                  <col className="report-col-debt-end" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th rowSpan={2}>Предоплата</th>
+                    <th rowSpan={2}>Задолженность</th>
+                    <th rowSpan={2}>№ комнаты</th>
+                    <th rowSpan={2}>Кол-во чел.</th>
+                    <th rowSpan={2}>Оплата за сутки</th>
+                    <th colSpan={3}>Оплата наличными</th>
+                    <th rowSpan={2}>Всего</th>
+                    <th rowSpan={2}>ФИО</th>
+                    <th rowSpan={2}>Tashkilot</th>
+                    <th rowSpan={2}>Предоплата</th>
+                    <th rowSpan={2}>Задолженность</th>
+                  </tr>
+                  <tr>
+                    <th>Наличия</th>
+                    <th>Пластиковая карта</th>
+                    <th>Банковский перевод</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dailyGuestRows.map((guest, index) => (
+                    <tr key={`${guest.roomNumber}-${guest.fullName}-${index}`}>
+                      <td>{formatMoney(guest.openingPrepayment)}</td>
+                      <td>{formatMoney(guest.openingDebt)}</td>
+                      <td>{formatRoomLabel(guest)}</td>
+                      <td>{guest.guestCount}</td>
+                      <td>{formatMoney(guest.dailyRate)}</td>
+                      <td>{formatMoney(guest.cash)}</td>
+                      <td>{formatMoney(guest.card)}</td>
+                      <td>{formatMoney(guest.transfer)}</td>
+                      <td>
+                        {formatMoney(
+                          (guest.cash || 0) +
+                            (guest.card || 0) +
+                            (guest.transfer || 0),
+                        )}
+                      </td>
+                      <td>{guest.fullName || "-"}</td>
+                      <td>{guest.organization || "-"}</td>
+                      <td>{formatMoney(guest.closingPrepayment)}</td>
+                      <td>{formatMoney(guest.closingDebt)}</td>
+                    </tr>
+                  ))}
+                  {!dailyGuestRows.length ? (
+                    <tr>
+                      <td colSpan={13} style={{ textAlign: "center" }}>
+                        {emptyText}
+                      </td>
+                    </tr>
+                  ) : null}
+                  {dailyGuestRows.length ? (
+                    <tr className="daily-report-total-row">
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.openingPrepayment || 0), 0))}</td>
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.openingDebt || 0), 0))}</td>
+                      <td>Всего</td>
+                      <td>{dailyGuestRows.reduce((sum, row) => sum + Number(row.guestCount || 0), 0)}</td>
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.dailyRate || 0), 0))}</td>
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.cash || 0), 0))}</td>
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.card || 0), 0))}</td>
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.transfer || 0), 0))}</td>
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.cash || 0) + Number(row.card || 0) + Number(row.transfer || 0), 0))}</td>
+                      <td />
+                      <td />
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))}</td>
+                      <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingDebt || 0), 0))}</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </section>
+
+            <section className="daily-report-section">
+              <div className="daily-report-section-head">
+                <h2>Kunlik xarajatlar</h2>
+                <span>{dailyExpenses.length} ta xarajat</span>
+              </div>
+              <table className="daily-report-table daily-report-expense-table">
+                <colgroup>
+                  <col className="report-col-name" />
+                  <col className="report-col-room" />
+                  <col className="report-col-count" />
+                  <col className="report-col-daily" />
+                  <col className="report-col-total" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>Nomi</th>
+                    <th>Kategoriya</th>
+                    <th>To'lov turi</th>
+                    <th>Summa</th>
+                    <th>Izoh</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dailyExpenses.map((expense, index) => (
+                    <tr key={`${expense.title}-${expense.category}-${index}`}>
+                      <td>{expense.title || "-"}</td>
+                      <td>{expense.category || "-"}</td>
+                      <td>{expense.paymentType || "-"}</td>
+                      <td>{formatMoney(expense.amount)}</td>
+                      <td>{expense.note || "-"}</td>
+                    </tr>
+                  ))}
+                  {!dailyExpenses.length ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center" }}>
+                        Tanlangan sana uchun xarajat topilmadi
+                      </td>
+                    </tr>
+                  ) : null}
+                  {dailyExpenses.length ? (
+                    <tr className="daily-report-total-row">
+                      <td>Jami</td>
+                      <td />
+                      <td />
+                      <td>{formatMoney(dailyExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0))}</td>
+                      <td />
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </section>
+
+            <section className="daily-report-section daily-report-summary-grid">
+              <div className="daily-report-rows">
+                <div className="daily-report-rows-primary">
+                  <div
+                    className="daily-report-prepayment-card"
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: "12px",
+                      minHeight: "72px",
+                    }}
+                  >
+                    <span>Predoplata</span>
+                    <b style={{ fontSize: "18px", lineHeight: 1.1 }}>
+                      {formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))} so'm
+                    </b>
+                  </div>
+                </div>
+                <div>
+                  <span>Jami aktiv xonalar</span>
+                  <b>{Number(dailyReport?.operations?.occupiedRooms || 0)} ta</b>
+                </div>
+                <div>
+                  <span>Jami aktiv mijozlar</span>
+                  <b>{Number(dailyReport?.operations?.guests || 0)} ta</b>
+                </div>
+                <div>
+                  <span>Jami qarzdorlar</span>
+                  <b>{Number(dailyReport?.debt?.debtors || 0)} ta</b>
+                </div>
+                <div>
+                  <span>Jami qarz</span>
+                  <b>{formatMoney(dailyReport?.debt?.total)} so'm</b>
+                </div>
+                <div>
+                  <span>Chop etilgan vaqt</span>
+                  <b>{dayjs().format("DD.MM.YYYY HH:mm")}</b>
+                </div>
+                <div>
+                  <span>Sana</span>
+                  <b>{dailyReportDate.format("DD.MM.YYYY")}</b>
+                </div>
+              </div>
+            </section>
+
+            <footer className="daily-report-footer">
+              <span>Tayyorladi: Administrator __________________</span>
+              <span>Chop etildi: {dayjs().format("DD.MM.YYYY HH:mm")}</span>
+            </footer>
+          </div>
+        </div>
+      </Spin>
+    </div>
+  );
+}
+
 function ReportsPage() {
   const navigate = useNavigate();
   const dailyReportRef = useRef(null);
@@ -309,7 +763,16 @@ function ReportsPage() {
   );
   const [dailyReportDate, setDailyReportDate] = useState(() => dayjs());
   const [activeTab, setActiveTab] = useState("summary");
+  const [accountingFilters, setAccountingFilters] = useState({
+    korpus: "",
+    floor: "",
+  });
   const hotelName = localStorage.getItem("hotelName") || "GRAND HOTEL";
+  const [accountingHotelName, setAccountingHotelName] = useState(
+    () =>
+      localStorage.getItem("reportHotelName") ||
+      "DIAMOND AZIYA SERVIS MCHJ",
+  );
   const monthKey = selectedMonth.format("YYYY-MM");
 
   const { data, isLoading, isFetching, error } = useGetReportsSummaryQuery(
@@ -324,13 +787,51 @@ function ReportsPage() {
     data: dailyResponse,
     isFetching: isDailyReportFetching,
     error: dailyReportError,
-  } = useGetDailyReportQuery(dailyDateKey, { skip: activeTab !== "daily" });
+  } = useGetDailyReportQuery(
+    {
+      date: dailyDateKey,
+      includeAllRooms: activeTab === "accounting",
+      korpus: activeTab === "accounting" ? accountingFilters.korpus : "",
+      floor: activeTab === "accounting" ? accountingFilters.floor : "",
+    },
+    { skip: !["daily", "accounting"].includes(activeTab) },
+  );
+  const { data: roomsData } = useGetRoomsQuery(undefined, {
+    skip: activeTab !== "accounting",
+  });
 
   const reportData = data?.innerData || {};
   const sections = reportData?.sections || {};
   const dailyReport = dailyResponse?.innerData;
   const dailyGuestRows = dailyReport?.guests || [];
   const dailyExpenses = dailyReport?.expenses?.items || [];
+  const rooms = useMemo(() => roomsData?.innerData || [], [roomsData]);
+  const accountingFloorOptions = useMemo(() => {
+    const floors = [
+      ...new Set(
+        rooms
+          .filter(
+            (room) =>
+              !accountingFilters.korpus ||
+              room.korpus === accountingFilters.korpus,
+          )
+          .map((room) => Number(room.floor))
+          .filter((floor) => Number.isFinite(floor) && floor > 0),
+      ),
+    ].sort((a, b) => a - b);
+    return floors.map((floor) => ({ label: `${floor}-qavat`, value: floor }));
+  }, [accountingFilters.korpus, rooms]);
+
+  useEffect(() => {
+    if (
+      accountingFilters.floor &&
+      !accountingFloorOptions.some(
+        (option) => Number(option.value) === Number(accountingFilters.floor),
+      )
+    ) {
+      setAccountingFilters((prev) => ({ ...prev, floor: "" }));
+    }
+  }, [accountingFilters.floor, accountingFloorOptions]);
 
   const quickHighlights = useMemo(
     () => [
@@ -373,6 +874,15 @@ function ReportsPage() {
     setSelectedMonth(value.startOf("month"));
   };
 
+  const onAccountingFilterChange = (next) => {
+    setAccountingFilters((prev) => ({ ...prev, ...next }));
+  };
+
+  const onHotelNameChange = (value) => {
+    setAccountingHotelName(value);
+    localStorage.setItem("reportHotelName", value);
+  };
+
   const formatRoomLabel = (guest) => {
     const roomNumber = guest?.roomNumber ? String(guest.roomNumber) : "-";
     const korpus = guest?.korpus ? `[${guest.korpus}]` : "[-]";
@@ -404,32 +914,19 @@ function ReportsPage() {
   return (
     <div className="reports-page">
       <div className="page-card reports-shell">
-        <section className="reports-hero">
-          <div className="reports-hero-copy">
-            <div className="reports-eyebrow">Hisobotlar markazi</div>
-            <div className="reports-hero-head">
-              <div>
-                <h2>Mehmonxona bo'yicha batafsil ko'rsatkichlar</h2>
-                <p>
-                  Bu yerda pul tushumi, xarajatlar, bronlar va mijozlar holati
-                  bitta sahifada sodda ko'rinishda chiqadi.
-                </p>
-              </div>
-
-              <div className="reports-hero-actions">
-                <DatePicker
-                  picker="month"
-                  allowClear={false}
-                  value={selectedMonth}
-                  onChange={onMonthChange}
-                  format="MMMM YYYY"
-                  className="reports-month-picker"
-                />
-                <div className="reports-generated-at">
-                  <span>Tanlangan oy</span>
-                  <strong>{reportData?.month || monthKey}</strong>
-                </div>
-              </div>
+        <section className="reports-summary-top">
+          <div className="reports-hero-actions">
+            <DatePicker
+              picker="month"
+              allowClear={false}
+              value={selectedMonth}
+              onChange={onMonthChange}
+              format="MMMM YYYY"
+              className="reports-month-picker"
+            />
+            <div className="reports-generated-at">
+              <span>Tanlangan oy</span>
+              <strong>{reportData?.month || monthKey}</strong>
             </div>
           </div>
 
@@ -846,6 +1343,32 @@ function ReportsPage() {
                     </div>
                   </Spin>
                 </div>
+              ),
+            },
+            {
+              key: "accounting",
+              label: "Buxgalter hisoboti",
+              children: (
+                <DailyReportContent
+                  title="Barcha xonalar ro'yxati"
+                  emptyText="Xonalar topilmadi"
+                  dailyReportDate={dailyReportDate}
+                  setDailyReportDate={setDailyReportDate}
+                  isDailyReportFetching={isDailyReportFetching}
+                  dailyReport={dailyReport}
+                  dailyReportError={dailyReportError}
+                  dailyGuestRows={dailyGuestRows}
+                  dailyExpenses={dailyExpenses}
+                  dailyReportRef={dailyReportRef}
+                  hotelName={accountingHotelName}
+                  onHotelNameChange={onHotelNameChange}
+                  printDailyReport={printDailyReport}
+                  formatRoomLabel={formatRoomLabel}
+                  isAccounting
+                  accountingFilters={accountingFilters}
+                  accountingFloorOptions={accountingFloorOptions}
+                  onAccountingFilterChange={onAccountingFilterChange}
+                />
               ),
             },
           ]}
