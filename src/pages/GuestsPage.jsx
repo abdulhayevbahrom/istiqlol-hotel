@@ -124,6 +124,10 @@ const getDailyRateFields = (guest) => {
     amount: savedRates.has(index + 1) ? savedRates.get(index + 1) : defaultRate,
   }));
 };
+
+const isWebsiteBooking = (guest) =>
+  guest?.source === "website" ||
+  String(guest?.note || "").toLowerCase().includes("website orqali bron");
 import {
   acquireSocketConnection,
   releaseSocketConnection,
@@ -1324,6 +1328,9 @@ function GuestsPage({ tab = "active" }) {
                           ) : null}
                           {guest.group ? (
                             <Tag color="cyan">Guruh: {guest.group.name}</Tag>
+                          ) : null}
+                          {isBookedGuestsTab && isWebsiteBooking(guest) ? (
+                            <Tag color="gold">Website</Tag>
                           ) : null}
                         </div>
                       </td>

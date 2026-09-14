@@ -467,6 +467,14 @@ export const employeeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Settings", "Guest"],
     }),
+    updateRoomCategoryImages: builder.mutation({
+      query: (body) => ({
+        url: "/settings/room-category-images",
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["Settings"],
+    }),
     sendSupportMessage: builder.mutation({
       query: (body) => ({
         url: "/support/message",
@@ -539,5 +547,6 @@ export const {
   useGetSettingsQuery,
   useGetAuditLogsQuery,
   useUpdateSettingsMutation,
+  useUpdateRoomCategoryImagesMutation,
   useSendSupportMessageMutation,
 } = employeeApi;
