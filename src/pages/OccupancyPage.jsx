@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Modal, Popconfirm, Select } from "antd";
+import { Button, Checkbox, DatePicker, Form, Input, InputNumber, Modal, Popconfirm, Select } from "antd";
 import { toast } from "react-toastify";
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiLogOut, FiPrinter } from "react-icons/fi";
+import { FiCalendar, FiChevronLeft, FiChevronRight, FiClock, FiCreditCard, FiEdit2, FiLogOut, FiPlus, FiPrinter } from "react-icons/fi";
+import dayjs from "dayjs";
 import { useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import {
@@ -9,6 +10,10 @@ import {
   useGetRoomsQuery,
   useLazyGetGuestByIdQuery,
   useCheckoutGuestMutation,
+  useAddGuestPaymentMutation,
+  useAddGuestServiceMutation,
+  useUpdateGuestMutation,
+  useGetServicesQuery,
 } from "../store/employeeApi";
 import {
   acquireSocketConnection,
@@ -51,22 +56,6 @@ const addDays = (date, amount) => {
 
 const toDayFraction = (value, anchor) => (new Date(value).getTime() - anchor.getTime()) / DAY_MS;
 
-// Shaxmatkada har kun ikki qismdan iborat: 00:00–12:00 va 12:00–24:00.
-// Kelish 12:00 dan oldin bo'lsa kunning birinchi yarmidan, chiqish 12:00
-// gacha bo'lsa birinchi yarmining oxirigacha band deb ko'rsatiladi.
-const toHalfDayPosition = (value, anchor, type) => {
-  const date = new Date(value);
-  const day = startOfDay(date);
-  const isBeforeNoon = date.getHours() < 12;
-  const isBeforeOrAtNoon = isBeforeNoon ||
-    (date.getHours() === 12 && date.getMinutes() === 0);
-  const half = type === "start"
-    ? (isBeforeNoon ? 0 : 0.5)
-    : (isBeforeOrAtNoon ? 0.5 : 1);
-
-  return toDayFraction(day, anchor) + half;
-};
-
 const formatDate = (value) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -75,6 +64,16 @@ const formatDate = (value) => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  }).format(date);
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("uz-UZ", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
   }).format(date);
 };
 
@@ -106,6 +105,8 @@ function OccupancyPage() {
   const [korpus, setKorpus] = useState();
   const [floor, setFloor] = useState();
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const [guestAction, setGuestAction] = useState(null);
+  const [actionForm] = Form.useForm();
   const bookingPrintRef = useRef(null);
   const guestDetailsRequestRef = useRef(0);
   const token = useSelector((state) => state.auth?.token);
@@ -132,6 +133,11 @@ function OccupancyPage() {
   const [getGuestById, { isFetching: guestDetailsLoading }] =
     useLazyGetGuestByIdQuery();
   const [checkoutGuest, { isLoading: checkingOut }] = useCheckoutGuestMutation();
+  const [addPayment, { isLoading: paying }] = useAddGuestPaymentMutation();
+  const [addService, { isLoading: savingService }] = useAddGuestServiceMutation();
+  const [updateGuest, { isLoading: updatingGuest }] = useUpdateGuestMutation();
+  const { data: servicesData } = useGetServicesQuery(true);
+  const services = servicesData?.innerData || [];
 
   const printBooking = useReactToPrint({
     content: () => bookingPrintRef.current,
@@ -157,12 +163,87 @@ function OccupancyPage() {
 
   const closeGuestDetails = () => {
     guestDetailsRequestRef.current += 1;
+    setGuestAction(null);
     setSelectedGuest(null);
+  };
+
+  const openGuestAction = (action) => {
+    if (!selectedGuest?._id || guestDetailsLoading) return;
+    actionForm.resetFields();
+    if (action === "edit") {
+      actionForm.setFieldsValue({
+        firstname: selectedGuest.firstname,
+        lastname: selectedGuest.lastname,
+        passport: selectedGuest.passport,
+        phone: selectedGuest.phone,
+        email: selectedGuest.email,
+        organization: selectedGuest.organization,
+        room: selectedGuest.room?._id || selectedGuest.room,
+        guestType: selectedGuest.guestType || "uzb",
+        dailyRate: Number(selectedGuest.dailyRate || 0),
+        stayDays: Number(selectedGuest.stayDays || 1),
+        checkInAt: selectedGuest.checkInAt ? dayjs(selectedGuest.checkInAt) : null,
+        isBlacklisted: Boolean(selectedGuest.isBlacklisted),
+        note: selectedGuest.note || "",
+      });
+    }
+    if (action === "payment") {
+      actionForm.setFieldsValue({
+        amount: Number(selectedGuest.payableAmount ?? selectedGuest.debtAmount ?? 0),
+        type: "naqd",
+        paymentDate: dayjs(),
+      });
+    }
+    if (action === "service") actionForm.setFieldsValue({ quantity: 1 });
+    setGuestAction(action);
+  };
+
+  const saveGuestAction = async (values) => {
+    if (!selectedGuest?._id) return;
+    try {
+      let result;
+      if (guestAction === "edit") {
+        result = await updateGuest({
+          id: selectedGuest._id,
+          firstname: String(values.firstname || "").trim(),
+          lastname: String(values.lastname || "").trim(),
+          passport: String(values.passport || "").trim(),
+          phone: String(values.phone || "").trim(),
+          email: String(values.email || "").trim(),
+          organization: String(values.organization || "").trim(),
+          room: values.room,
+          guestType: values.guestType,
+          dailyRate: Number(values.dailyRate || 0),
+          stayDays: Number(values.stayDays || 1),
+          checkInAt: values.checkInAt?.toISOString(),
+          isBlacklisted: Boolean(values.isBlacklisted),
+          note: String(values.note || "").trim(),
+        }).unwrap();
+      } else if (guestAction === "payment") {
+        const amount = Number(values.amount || 0);
+        const payable = Number(selectedGuest.payableAmount ?? selectedGuest.debtAmount ?? 0);
+        if (amount > payable) {
+          toast.error("To‘lov summasi qarzdan oshmasin");
+          return;
+        }
+        result = await addPayment({ id: selectedGuest._id, amount, type: values.type, paymentDate: values.paymentDate?.toISOString(), note: String(values.note || "").trim() }).unwrap();
+      } else if (guestAction === "service") {
+        const service = services.find((item) => item._id === values.serviceId);
+        if (!service) return;
+        result = await addService({ id: selectedGuest._id, serviceId: service._id, name: service.name, price: Number(service.defaultPrice || 0), quantity: Number(values.quantity || 1), note: String(values.note || "").trim() }).unwrap();
+      }
+      if (result?.innerData) setSelectedGuest(result.innerData);
+      toast.success(result?.message || "Saqlandi");
+      setGuestAction(null);
+      refetchOccupancy();
+      refetchRooms();
+    } catch (error) {
+      toast.error(error?.data?.message || "Amalda xatolik");
+    }
   };
 
   const onCheckout = async () => {
     if (!selectedGuest?._id) return;
-
     try {
       const result = await checkoutGuest(selectedGuest._id).unwrap();
       toast.success(result?.message || "Checkout qilindi");
@@ -231,26 +312,34 @@ function OccupancyPage() {
   const entriesByRoom = useMemo(() => {
     const grouped = new Map();
     occupancy.forEach((guest) => {
-      const roomId = guest?.room?._id || guest?.room;
-      if (!roomId) return;
-      const startsAt = guest.bookedForAt || guest.checkInAt;
-      const endsAt = guest.checkOutAt || guest.checkoutDueAt;
-      if (!startsAt || !endsAt) return;
-      const rawStart = toHalfDayPosition(startsAt, viewStart, "start");
-      const rawEnd = toHalfDayPosition(endsAt, viewStart, "end");
-      const start = Math.max(0, rawStart);
-      const end = Math.min(DAY_COUNT, rawEnd);
-      if (end <= 0 || end <= start) return;
-      const checkoutDay = startOfDay(guest.checkOutAt || guest.checkoutDueAt);
-      const entry = {
-        ...guest,
-        start,
-        end,
-        lane: 1,
-        isPastStay: Boolean(checkoutDay < todayStart),
-        isTodayCheckout: Boolean(checkoutDay.getTime() === todayStart.getTime()),
-      };
-      grouped.set(roomId, [...(grouped.get(roomId) || []), entry]);
+      const stayEnd = guest.checkOutAt || guest.checkoutDueAt;
+      const roomStays = guest.roomStays?.length
+        ? guest.roomStays
+        : [{ room: guest.room, from: guest.bookedForAt || guest.checkInAt, to: null }];
+      roomStays.forEach((stay, segmentIndex) => {
+        const roomId = stay?.room?._id || stay?.room;
+        const startsAt = stay.from;
+        const endsAt = stay.to || stayEnd;
+        if (!roomId || !startsAt || !endsAt) return;
+        const rawStart = toDayFraction(startsAt, viewStart);
+        const rawEnd = toDayFraction(endsAt, viewStart);
+        const start = Math.max(0, rawStart);
+        const end = Math.min(DAY_COUNT, rawEnd);
+        if (end <= 0 || end <= start) return;
+        const checkoutDay = startOfDay(stayEnd);
+        const entry = {
+          ...guest,
+          segmentKey: `${guest._id}-${segmentIndex}`,
+          segmentStartAt: startsAt,
+          segmentEndAt: endsAt,
+          start,
+          end,
+          lane: 1,
+          isPastStay: Boolean(checkoutDay < todayStart),
+          isTodayCheckout: Boolean(checkoutDay.getTime() === todayStart.getTime()),
+        };
+        grouped.set(roomId, [...(grouped.get(roomId) || []), entry]);
+      });
     });
 
     grouped.forEach((entries, roomId) => {
@@ -348,11 +437,11 @@ function OccupancyPage() {
                     {entries.map((entry) => {
                       const name = `${entry.firstname || ""} ${entry.lastname || ""}`.trim() || "Mehmon";
                       const left = entry.start * CELL_WIDTH;
-                      const width = Math.max((entry.end - entry.start) * CELL_WIDTH, 10);
+                      const width = Math.max((entry.end - entry.start) * CELL_WIDTH, 1);
                       return (
                         <button
                           type="button"
-                          key={entry._id}
+                          key={entry.segmentKey}
                           className={[
                             "occupancy-booking",
                             `occupancy-booking-${entry.status}`,
@@ -367,7 +456,7 @@ function OccupancyPage() {
                             width: `${width}px`,
                             top: `${(entry.lane - 1) * ROW_HEIGHT}px`,
                           }}
-                          title={`${name}: ${formatDate(entry.bookedForAt || entry.checkInAt)} — ${formatDate(entry.checkOutAt || entry.checkoutDueAt)}`}
+                          title={`${name}: ${formatDate(entry.segmentStartAt)} — ${formatDate(entry.segmentEndAt)}`}
                           onClick={() => openGuestDetails(entry)}
                         >
                           <span>{name}</span>
@@ -385,36 +474,44 @@ function OccupancyPage() {
       </div>
 
       <Modal
-        title="Bron ma’lumotlari"
+        title={selectedGuest?.status === "booked" ? "Bron ma’lumotlari" : "Mijoz ma’lumotlari"}
+        rootClassName="occupancy-guest-modal"
+        width={520}
         open={Boolean(selectedGuest)}
         onCancel={closeGuestDetails}
         footer={
-          <>
-            <Button onClick={closeGuestDetails}>Yopish</Button>
+          <div className="table-action-wrap occupancy-guest-actions">
             {selectedGuest?.status === "booked" ? (
-              <Button
-                className="hotel-primary-btn"
-                icon={<FiPrinter />}
-                loading={guestDetailsLoading}
+              <button
+                className="icon-btn"
+                title="Bron qog‘ozini print qilish"
+                aria-label="Bron qog‘ozini print qilish"
+                disabled={guestDetailsLoading}
                 onClick={printBooking}
               >
-                Bron qog‘ozini print qilish
-              </Button>
+                <FiPrinter size={16} />
+              </button>
             ) : null}
             {selectedGuest?.status === "active" ? (
-              <Popconfirm
-                title="Mehmonni chiqarish"
-                description="Xona avtomatik bo'sh holatga qaytadi"
-                okText="Chiqarish"
-                cancelText="Bekor"
-                okButtonProps={{ loading: checkingOut }}
-                onConfirm={onCheckout}
-                overlayClassName="hotel-popconfirm"
-              >
-                <Button danger icon={<FiLogOut />}>Checkout</Button>
-              </Popconfirm>
+              <>
+                <button className="icon-btn" title="Tahrirlash" aria-label="Tahrirlash" disabled={guestDetailsLoading} onClick={() => openGuestAction("edit")}><FiEdit2 size={16} /></button>
+                <button className="icon-btn" title={selectedGuest.vip ? "VIP mehmon uchun to‘lov olinmaydi" : "To‘lov"} aria-label="To‘lov" disabled={guestDetailsLoading || selectedGuest.vip || Number(selectedGuest.payableAmount ?? selectedGuest.debtAmount ?? 0) <= 0} onClick={() => openGuestAction("payment")}><FiCreditCard size={16} /></button>
+                <button className="icon-btn" title="Xizmat qo‘shish" aria-label="Xizmat qo‘shish" disabled={guestDetailsLoading} onClick={() => openGuestAction("service")}><FiPlus size={17} /></button>
+                <button className="icon-btn" title="Hisobot" aria-label="Hisobot" disabled={guestDetailsLoading || (!(selectedGuest.payments || []).length && !(selectedGuest.services || []).length)} onClick={() => openGuestAction("history")}><FiClock size={16} /></button>
+                <Popconfirm
+                  title="Mehmonni chiqarish"
+                  description="Xona avtomatik bo'sh holatga qaytadi"
+                  okText="Chiqarish"
+                  cancelText="Bekor"
+                  okButtonProps={{ loading: checkingOut }}
+                  onConfirm={onCheckout}
+                  overlayClassName="hotel-popconfirm"
+                >
+                  <button className="icon-btn" title="Checkout" aria-label="Checkout" disabled={guestDetailsLoading || checkingOut}><FiLogOut size={16} /></button>
+                </Popconfirm>
+              </>
             ) : null}
-          </>
+          </div>
         }
       >
         {selectedGuest ? (
@@ -424,6 +521,13 @@ function OccupancyPage() {
             <div><span>Kelish</span><strong>{formatDate(selectedGuest.bookedForAt || selectedGuest.checkInAt)}</strong></div>
             <div><span>Chiqish</span><strong>{formatDate(selectedGuest.checkOutAt || selectedGuest.checkoutDueAt)}</strong></div>
             <div><span>Holati</span><strong>{guestStatusLabels[selectedGuest.status] || "Noma'lum"}</strong></div>
+            {selectedGuest.roomStays?.length > 1 ? (
+              <div><span>Xona tarixi</span><strong>{selectedGuest.roomStays.map((stay, index) => (
+                <span key={index} className="occupancy-room-stay">
+                  {stay.room?.roomNumber || "-"}: {formatDateTime(stay.from)} — {formatDateTime(stay.to || selectedGuest.checkOutAt || selectedGuest.checkoutDueAt)}
+                </span>
+              ))}</strong></div>
+            ) : null}
             {selectedGuest.source === "booking_com" ? (
               <>
                 <div><span>Manba</span><strong>Booking.com</strong></div>
@@ -431,6 +535,68 @@ function OccupancyPage() {
               </>
             ) : null}
           </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        title={{ edit: "Mehmonni tahrirlash", payment: "To‘lov qo‘shish", service: "Mehmonga xizmat qo‘shish", history: "Hisobot" }[guestAction]}
+        open={Boolean(guestAction)}
+        onCancel={() => setGuestAction(null)}
+        footer={null}
+        destroyOnHidden
+        width={guestAction === "edit" ? 700 : 520}
+        rootClassName="employee-modal-theme"
+      >
+        {guestAction === "history" ? (
+          <div className="occupancy-history">
+            <h4>To‘lovlar</h4>
+            {(selectedGuest?.payments || []).length ? (selectedGuest.payments.map((payment, index) => (
+              <div key={index}><span>{formatDate(payment.paymentDate || payment.createdAt)} · {payment.type}</span><strong>{Number(payment.amount || 0).toLocaleString("uz-UZ")} so‘m</strong></div>
+            ))) : <p>To‘lovlar yo‘q</p>}
+            <h4>Xizmatlar</h4>
+            {(selectedGuest?.services || []).length ? (selectedGuest.services.map((service, index) => (
+              <div key={index}><span>{service.name} · {service.quantity || 1} ta</span><strong>{(Number(service.price || 0) * Number(service.quantity || 1)).toLocaleString("uz-UZ")} so‘m</strong></div>
+            ))) : <p>Xizmatlar yo‘q</p>}
+          </div>
+        ) : guestAction ? (
+          <Form form={actionForm} layout="vertical" onFinish={saveGuestAction} requiredMark={false}>
+            {guestAction === "edit" ? (
+              <div className="occupancy-action-form-grid">
+                <Form.Item name="firstname" label="Ism" rules={[{ required: true, message: "Ism majburiy" }]}><Input /></Form.Item>
+                <Form.Item name="lastname" label="Familiya" rules={[{ required: true, message: "Familiya majburiy" }]}><Input /></Form.Item>
+                <Form.Item name="passport" label="Passport / Prava"><Input /></Form.Item>
+                <Form.Item name="phone" label="Telefon"><Input /></Form.Item>
+                <Form.Item name="email" label="Email" rules={[{ type: "email", message: "Email formati noto‘g‘ri" }]}><Input /></Form.Item>
+                <Form.Item name="organization" label="Tashkilot"><Input /></Form.Item>
+                <Form.Item name="room" label="Xona" rules={[{ required: true, message: "Xona majburiy" }]}><Select showSearch optionFilterProp="label" options={(roomsData?.innerData || []).map((room) => ({ value: room._id, label: formatRoomLabel(room) }))} onChange={(roomId) => {
+                  const room = rooms.find((item) => item._id === roomId);
+                  if (room) actionForm.setFieldValue("dailyRate", Number((actionForm.getFieldValue("guestType") === "chetellik" ? room.prices?.chetEllik : room.prices?.oddiy) || 0));
+                }} /></Form.Item>
+                <Form.Item name="guestType" label="Mehmon turi"><Select options={[{ value: "uzb", label: "UZB" }, { value: "chetellik", label: "Chet ellik" }]} /></Form.Item>
+                <Form.Item name="dailyRate" label="Kunlik narx" rules={[{ required: true, message: "Narx majburiy" }]}><InputNumber min={0} precision={0} style={{ width: "100%" }} /></Form.Item>
+                <Form.Item name="stayDays" label="Qolish kuni" rules={[{ required: true, message: "Kun majburiy" }]}><InputNumber min={1} precision={0} style={{ width: "100%" }} /></Form.Item>
+                <Form.Item name="checkInAt" label="Kelgan sana vaqti" rules={[{ required: true, message: "Sana majburiy" }]}><DatePicker showTime format="DD.MM.YYYY HH:mm" style={{ width: "100%" }} /></Form.Item>
+                <Form.Item name="isBlacklisted" valuePropName="checked"><Checkbox>Qora ro‘yxatga olish</Checkbox></Form.Item>
+                <Form.Item name="note" label="Izoh" className="occupancy-action-full"><Input.TextArea rows={2} /></Form.Item>
+              </div>
+            ) : null}
+            {guestAction === "payment" ? (
+              <>
+                <Form.Item name="amount" label="Summasi" rules={[{ required: true, message: "Summa majburiy" }, { type: "number", min: 1, message: "Eng kamida 1 so‘m" }]}><InputNumber min={1} precision={0} max={Number(selectedGuest?.payableAmount ?? selectedGuest?.debtAmount ?? 0)} style={{ width: "100%" }} /></Form.Item>
+                <Form.Item name="type" label="To‘lov turi" rules={[{ required: true }]}><Select options={[{ value: "naqd", label: "Naqd" }, { value: "bank", label: "Bank" }, { value: "karta", label: "Karta" }]} /></Form.Item>
+                <Form.Item name="paymentDate" label="To‘lov sanasi" rules={[{ required: true }]}><DatePicker showTime format="DD.MM.YYYY HH:mm" style={{ width: "100%" }} /></Form.Item>
+                <Form.Item name="note" label="Izoh"><Input.TextArea rows={2} /></Form.Item>
+              </>
+            ) : null}
+            {guestAction === "service" ? (
+              <>
+                <Form.Item name="serviceId" label="Xizmat nomi" rules={[{ required: true, message: "Xizmat tanlang" }]}><Select showSearch optionFilterProp="label" options={services.map((service) => ({ value: service._id, label: `${service.name} (${Number(service.defaultPrice || 0).toLocaleString("uz-UZ")} so‘m)` }))} /></Form.Item>
+                <Form.Item name="quantity" label="Soni" rules={[{ required: true }]}><InputNumber min={1} precision={0} style={{ width: "100%" }} /></Form.Item>
+                <Form.Item name="note" label="Izoh"><Input.TextArea rows={2} /></Form.Item>
+              </>
+            ) : null}
+            <div className="row-actions"><Button htmlType="submit" className="hotel-primary-btn" loading={paying || savingService || updatingGuest}>Saqlash</Button><Button onClick={() => setGuestAction(null)}>Bekor qilish</Button></div>
+          </Form>
         ) : null}
       </Modal>
 

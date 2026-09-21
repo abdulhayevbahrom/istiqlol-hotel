@@ -9,6 +9,7 @@ import {
   Switch,
 } from "antd";
 import { useMemo, useState } from "react";
+import OwnerOnly from "../components/OwnerOnly";
 import { toast } from "react-toastify";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import {
@@ -128,7 +129,7 @@ function ServicesPage() {
                           >
                             <FiEdit2 size={16} />
                           </button>
-                          <Popconfirm
+                          <OwnerOnly><Popconfirm
                             title="Xizmatni o'chirish"
                             okText="O'chirish"
                             cancelText="Bekor"
@@ -139,7 +140,7 @@ function ServicesPage() {
                             <button className="icon-btn danger">
                               <FiTrash2 size={16} />
                             </button>
-                          </Popconfirm>
+                          </Popconfirm></OwnerOnly>
                         </div>
                       </td>
                     </tr>

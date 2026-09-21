@@ -17,6 +17,7 @@ import {
   Tag,
 } from "antd";
 import { useSelector } from "react-redux";
+import OwnerOnly from "../components/OwnerOnly";
 import { toast } from "react-toastify";
 import { useReactToPrint } from "react-to-print";
 import * as XLSX from "xlsx";
@@ -252,7 +253,7 @@ function GuestsPage({ tab = "active" }) {
   const { data: roomsData } = useGetRoomsQuery();
   const hotelSettings = settingsData?.innerData || {};
   const hotelName = hotelSettings?.hotelName || "Mehmonxona nomi";
-  const canDeleteGuest = true;
+  const canDeleteGuest = user?.role === "owner";
   const [paymentForm] = Form.useForm();
   const [serviceForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -2091,6 +2092,23 @@ function GuestsPage({ tab = "active" }) {
                 showSearch
                 placeholder="Xona tanlang"
                 options={roomEditOptions}
+                onChange={(roomId) => {
+                  const room = rooms.find((item) => item._id === roomId);
+                  if (!room) return;
+                  const nextRate = Number(
+                    editForm.getFieldValue("guestType") === "chetellik"
+                      ? room.prices?.chetEllik
+                      : room.prices?.oddiy,
+                  ) || 0;
+                  editForm.setFieldValue("dailyRate", nextRate);
+                  const rates = editForm.getFieldValue("dailyRates") || [];
+                  editForm.setFieldValue("dailyRates", rates.map((item, index) => ({
+                    ...item,
+                    amount: !editGuestCurrentDay || index + 1 >= editGuestCurrentDay
+                      ? nextRate
+                      : item.amount,
+                  })));
+                }}
                 filterOption={(input, option) =>
                   String(option?.label || "")
                     .toLowerCase()

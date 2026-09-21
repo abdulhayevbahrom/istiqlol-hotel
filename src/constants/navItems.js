@@ -14,6 +14,7 @@ export const navItems = [
   { to: "/receipts", label: "Kvitansiya", section: "receipts" },
   { to: "/guests-debtors", label: "Qarzdorlar", section: "guests-debtors" },
   { to: "/attendance", label: "Davomat", section: "attendance" },
+  { to: "/payroll", label: "Oylik", section: "payroll" },
   { to: "/services", label: "Xizmatlar", section: "services" },
   { to: "/hall-bookings", label: "Zal ijarasi", section: "hall-bookings" },
   { to: "/expenses", label: "Xarajatlar", section: "expenses" },

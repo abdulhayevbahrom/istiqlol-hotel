@@ -12,6 +12,7 @@ import {
   Tag,
 } from "antd";
 import dayjs from "dayjs";
+import OwnerOnly from "../../components/OwnerOnly";
 import { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import {
@@ -391,7 +392,7 @@ function HallBookingsPage() {
                             <FiXCircle size={16} />
                           </button>
                         </Popconfirm>
-                        <Popconfirm
+                        <OwnerOnly><Popconfirm
                           title="Buyurtmani o'chirish"
                           description="Rostdan ham o'chirasizmi?"
                           okText="O'chirish"
@@ -410,7 +411,7 @@ function HallBookingsPage() {
                           >
                             <FiTrash2 size={16} />
                           </button>
-                        </Popconfirm>
+                        </Popconfirm></OwnerOnly>
                       </div>
                     </td>
                   </tr>

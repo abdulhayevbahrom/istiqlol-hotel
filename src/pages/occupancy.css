@@ -260,3 +260,39 @@
     min-width: 145px;
   }
 }
+.occupancy-guest-actions {
+  justify-content: flex-end;
+}
+
+.occupancy-action-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.occupancy-action-full {
+  grid-column: 1 / -1;
+}
+
+.occupancy-history h4 {
+  margin: 16px 0 8px;
+}
+
+.occupancy-room-stay {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.occupancy-history > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hotel-border);
+}
+
+@media (max-width: 600px) {
+  .occupancy-action-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

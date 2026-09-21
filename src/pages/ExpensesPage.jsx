@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import OwnerOnly from "../components/OwnerOnly";
 import {
   Button,
   Form,
@@ -298,7 +299,7 @@ function ExpensesPage() {
               + Xarajat qo'shish
             </Button>
             {selectedExpenseIds.length > 0 ? (
-              <Popconfirm
+              <OwnerOnly><Popconfirm
                 title="Tanlangan xarajatlarni o'chirish"
                 description={`${selectedExpenseIds.length} ta xarajat o'chiriladi. Davom etasizmi?`}
                 okText="O'chirish"
@@ -310,7 +311,7 @@ function ExpensesPage() {
                 <Button danger icon={<FiTrash2 />} loading={deletingBulk}>
                   Tanlanganlarni o'chirish ({selectedExpenseIds.length})
                 </Button>
-              </Popconfirm>
+              </Popconfirm></OwnerOnly>
             ) : null}
           </div>
         </div>
@@ -399,7 +400,7 @@ function ExpensesPage() {
                           >
                             <FiEdit2 size={16} />
                           </button>
-                          <Popconfirm
+                          <OwnerOnly><Popconfirm
                             title="Xarajatni o'chirish"
                             description="Rostdan ham o'chirmoqchimisiz?"
                             okText="O'chirish"
@@ -414,7 +415,7 @@ function ExpensesPage() {
                             >
                               <FiTrash2 size={16} />
                             </button>
-                          </Popconfirm>
+                          </Popconfirm></OwnerOnly>
                         </div>
                       </td>
                     </tr>

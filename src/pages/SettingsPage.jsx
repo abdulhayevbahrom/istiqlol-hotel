@@ -1,4 +1,5 @@
 import { Button, Form, Input, Modal, Popconfirm, Tabs, TimePicker } from "antd";
+import OwnerOnly from "../components/OwnerOnly";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
@@ -8,11 +9,13 @@ import {
   FiFileText,
   FiHome,
   FiImage,
+  FiLifeBuoy,
   FiTrash2,
   FiUploadCloud,
 } from "react-icons/fi";
 import {
   useGetSettingsQuery,
+  useSendSupportMessageMutation,
   useUpdateRoomCategoryImagesMutation,
   useUpdateSettingsMutation,
 } from "../store/employeeApi";
@@ -45,6 +48,7 @@ function SettingsPage() {
   const [categoryForm] = Form.useForm();
   const { data, isLoading } = useGetSettingsQuery();
   const [updateSettings, { isLoading: saving }] = useUpdateSettingsMutation();
+  const [sendSupportMessage, { isLoading: sendingSupport }] = useSendSupportMessageMutation();
   const [updateRoomCategoryImages, { isLoading: savingCategoryImages }] =
     useUpdateRoomCategoryImagesMutation();
   const [logoPreview, setLogoPreview] = useState("");
@@ -52,6 +56,7 @@ function SettingsPage() {
   const [roomCategoryImages, setRoomCategoryImages] = useState({});
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategoryIndex, setEditingCategoryIndex] = useState(-1);
+  const [support, setSupport] = useState({ subject: "", complaint: "", phone: "" });
   const settings = useMemo(() => data?.innerData || {}, [data]);
 
   useEffect(() => {
@@ -207,6 +212,21 @@ function SettingsPage() {
       toast.success(result?.message || "Sozlamalar saqlandi");
     } catch (err) {
       toast.error(err?.data?.message || "Saqlashda xatolik");
+    }
+  };
+
+  const onSendSupport = async () => {
+    const subject = support.subject.trim();
+    const complaint = support.complaint.trim();
+    const phone = support.phone.trim();
+    if (!subject || !complaint || !phone) return toast.error("Support formasidagi barcha maydonlarni to'ldiring");
+    if (!/^\+?\d{7,15}$/.test(phone)) return toast.error("Telefon formati noto'g'ri");
+    try {
+      await sendSupportMessage({ hotelName: settings.hotelName || "Mehmonxona nomi", subject, complaint, phone }).unwrap();
+      toast.success("Xabaringiz qabul qilindi. Tez orada aloqaga chiqamiz.");
+      setSupport({ subject: "", complaint: "", phone: "" });
+    } catch (error) {
+      toast.error(error?.data?.message || error?.data?.innerData || "Supportga yuborishda xatolik");
     }
   };
 
@@ -371,7 +391,7 @@ function SettingsPage() {
                         <FiUploadCloud size={15} />
                         {logoPreview ? "Boshqa rasm tanlash" : "Rasm tanlash"}
                       </label>
-                      {logoPreview ? (
+                      {logoPreview ? (<OwnerOnly>
                         <button
                           type="button"
                           className="settings-remove-btn"
@@ -380,7 +400,7 @@ function SettingsPage() {
                           <FiTrash2 size={14} />
                           Olib tashlash
                         </button>
-                      ) : null}
+                      </OwnerOnly>) : null}
                     </div>
                   </div>
                 </div>
@@ -443,13 +463,13 @@ function SettingsPage() {
                                         {(roomCategoryImages[category] || []).map((image) => (
                                           <div className="settings-category-image" key={image}>
                                             <img src={resolveAssetUrl(image)} alt={`${category} rasmi`} />
-                                            <button
+                                            <OwnerOnly><button
                                               type="button"
                                               onClick={() => removeCategoryImage(category, image)}
                                               disabled={savingCategoryImages}
                                             >
                                               <FiTrash2 size={12} />
-                                            </button>
+                                            </button></OwnerOnly>
                                           </div>
                                         ))}
                                         {(roomCategoryImages[category] || []).length < 8 ? (
@@ -477,7 +497,7 @@ function SettingsPage() {
                                         >
                                           <FiEdit2 size={15} />
                                         </button>
-                                        <Popconfirm
+                                        <OwnerOnly><Popconfirm
                                           title="Kategoriyani o'chirish"
                                           description="Bu kategoriyani o'chirmoqchimisiz?"
                                           okText="Ha"
@@ -493,7 +513,7 @@ function SettingsPage() {
                                           >
                                             <FiTrash2 size={15} />
                                           </button>
-                                        </Popconfirm>
+                                        </Popconfirm></OwnerOnly>
                                       </div>
                                     </td>
                                   </tr>
@@ -512,6 +532,35 @@ function SettingsPage() {
                           </Button>
                         </div>
                       </>
+                    ),
+                  },
+                  {
+                    key: "support",
+                    label: "Support",
+                    children: (
+                      <section className="settings-block settings-block-wide settings-support-block">
+                        <div className="settings-block-head">
+                          <span className="settings-block-icon"><FiLifeBuoy size={14} /></span>
+                          <div><h3>Dasturchiga yozish</h3></div>
+                        </div>
+                        <div className="settings-support-form">
+                          <label className="settings-support-field">
+                            <span>Mavzu</span>
+                            <Input maxLength={80} value={support.subject} onChange={(event) => setSupport((prev) => ({ ...prev, subject: event.target.value }))} placeholder="Murojaat mavzusi" />
+                          </label>
+                          <label className="settings-support-field">
+                            <span>Aloqa uchun telefon</span>
+                            <Input maxLength={16} value={support.phone} onChange={(event) => setSupport((prev) => ({ ...prev, phone: event.target.value }))} placeholder="+998901234567" />
+                          </label>
+                          <label className="settings-support-field settings-support-message">
+                            <span>Xabar</span>
+                            <Input.TextArea rows={6} maxLength={500} showCount value={support.complaint} onChange={(event) => setSupport((prev) => ({ ...prev, complaint: event.target.value }))} placeholder="Muammo yoki taklifingizni batafsil yozing" />
+                          </label>
+                          <div className="row-actions settings-support-message">
+                            <Button htmlType="button" className="hotel-primary-btn" loading={sendingSupport} onClick={onSendSupport}>Yuborish</Button>
+                          </div>
+                        </div>
+                      </section>
                     ),
                   },
                 ]}

@@ -440,3 +440,8 @@
     height: 80px;
   }
 }
+.settings-support-block { max-width: 920px; }
+.settings-support-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.settings-support-field { display: grid; gap: 7px; color: #344054; font-size: 13px; font-weight: 700; }
+.settings-support-message { grid-column: 1 / -1; }
+@media (max-width: 700px) { .settings-support-form { grid-template-columns: 1fr; } }

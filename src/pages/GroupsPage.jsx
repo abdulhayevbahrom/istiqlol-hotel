@@ -14,6 +14,7 @@ import {
   Tag,
 } from "antd";
 import { Fragment, useState } from "react";
+import OwnerOnly from "../components/OwnerOnly";
 import {
   FiCreditCard,
   FiEdit2,
@@ -387,7 +388,7 @@ function GroupsPage() {
                                 </button>
                               </Popconfirm>
                             ) : null}
-                            <Popconfirm
+                            <OwnerOnly><Popconfirm
                               title="Guruhni o'chirish"
                               description="Guruhga bog'langan barcha mehmonlar ham o'chiriladi. Davom etasizmi?"
                               okText="O'chirish"
@@ -398,7 +399,7 @@ function GroupsPage() {
                               <button type="button" className="icon-btn danger" title="Guruhni o'chirish">
                                 <FiTrash2 size={16} />
                               </button>
-                            </Popconfirm>
+                            </Popconfirm></OwnerOnly>
                           </div>
                         </td>
                       </tr>

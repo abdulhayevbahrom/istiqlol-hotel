@@ -8,7 +8,10 @@ import {
   Modal,
   Popover,
   Popconfirm,
+  Radio,
+  Select,
 } from "antd";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { navItems } from "../constants/navItems";
 import {
@@ -27,7 +30,10 @@ const initialForm = {
   firstname: "",
   lastname: "",
   position: "",
+  role: "",
+  customRole: "",
   salary: "",
+  salaryType: "fixed",
   canLogin: false,
   login: "",
   password: "",
@@ -48,6 +54,7 @@ const EmployeeRow = memo(function EmployeeRow({
   isDeleting,
   onEdit,
   onDelete,
+  canDelete,
 }) {
   return (
     <tr>
@@ -55,8 +62,9 @@ const EmployeeRow = memo(function EmployeeRow({
         {employee.firstname} {employee.lastname}
       </td>
       <td data-label="Lavozim">{employee.position}</td>
+      <td data-label="Rol">{({ owner: "Owner", admin: "Admin", manager: "Manager" })[employee.role || String(employee.position || "").toLowerCase()] || employee.role || "-"}</td>
       <td data-label="Oylik">
-        {employee.salary?.toLocaleString?.() || employee.salary}
+        {Number(employee.salary || 0).toLocaleString()} so'm {employee.salaryType === "hourly" ? "/ soat" : "/ oy"}
       </td>
       <td data-label="Login">{employee.login || "-"}</td>
       <td data-label="Ruxsatlar">
@@ -105,7 +113,7 @@ const EmployeeRow = memo(function EmployeeRow({
               <path d="M12 8L16 12" stroke="currentColor" strokeWidth="2" />
             </svg>
           </button>
-          <Popconfirm
+          {canDelete && (employee.role || String(employee.position || "").toLowerCase()) !== "owner" ? <Popconfirm
             title="Hodimni o'chirish"
             description="Ushbu amalni tasdiqlaysizmi?"
             okText="O'chirish"
@@ -126,7 +134,7 @@ const EmployeeRow = memo(function EmployeeRow({
                 <path d="M7 7L8 20H16L17 7" stroke="currentColor" strokeWidth="2" />
               </svg>
             </button>
-          </Popconfirm>
+          </Popconfirm> : null}
         </div>
       </td>
     </tr>
@@ -134,6 +142,7 @@ const EmployeeRow = memo(function EmployeeRow({
 });
 
 function EmployeesPage() {
+  const currentRole = useSelector((state) => state.auth.user?.role);
   const [form] = Form.useForm();
   const { employees, isLoading } = useGetEmployeesQuery(undefined, {
     selectFromResult: ({ data, isLoading: queryLoading }) => ({
@@ -152,6 +161,9 @@ function EmployeesPage() {
   const [editingId, setEditingId] = useState("");
   const [error, setError] = useState("");
   const canLogin = Form.useWatch("canLogin", form);
+  const selectedRole = Form.useWatch("role", form);
+  const salaryType = Form.useWatch("salaryType", form);
+  const ownerExists = employees.some((employee) => employee.role === "owner" || (!employee.role && String(employee.position).toLowerCase() === "owner"));
 
   const filteredEmployees = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -179,7 +191,9 @@ function EmployeesPage() {
       firstname: String(values.firstname || "").trim(),
       lastname: String(values.lastname || "").trim(),
       position: String(values.position || "").trim(),
+      role: String(values.role === "new" ? values.customRole : values.role || "").trim().toLowerCase(),
       salary: Number(values.salary),
+      salaryType: values.salaryType || "fixed",
       canLogin: Boolean(values.canLogin),
       sections: values.sections || [],
     };
@@ -221,11 +235,15 @@ function EmployeesPage() {
   const openEditModal = useCallback((employee) => {
     setError("");
     setEditingId(employee._id);
+    const existingRole = employee.role || (["owner", "admin", "manager", "guard"].includes(String(employee.position || "").toLowerCase()) ? String(employee.position).toLowerCase() : "staff");
     form.setFieldsValue({
       firstname: employee.firstname || "",
       lastname: employee.lastname || "",
       position: employee.position || "",
+      role: existingRole,
+      customRole: "",
       salary: Number(employee.salary ?? 0),
+      salaryType: employee.salaryType || "fixed",
       canLogin: Boolean(employee.canLogin),
       login: employee.login || "",
       password: "",
@@ -272,6 +290,7 @@ function EmployeesPage() {
                 <tr>
                   <th>F.I.SH</th>
                   <th>Lavozim</th>
+                  <th>Rol</th>
                   <th>Oylik</th>
                   <th>Login</th>
                   <th>Ruxsatlar</th>
@@ -286,11 +305,12 @@ function EmployeesPage() {
                     isDeleting={isDeleting}
                     onEdit={openEditModal}
                     onDelete={onDelete}
+                    canDelete={currentRole === "owner"}
                   />
                 ))}
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="table-empty">
+                    <td colSpan={7} className="table-empty">
                       Hech narsa topilmadi
                     </td>
                   </tr>
@@ -368,6 +388,32 @@ function EmployeesPage() {
             >
               <Input placeholder="Lavozim kiriting" />
             </Form.Item>
+            <Form.Item name="role" label="Tizimdagi rol" rules={[{ required: true, message: "Rolni tanlang" }]}>
+              <Select
+                options={[
+                  { value: "owner", label: "Owner", disabled: (ownerExists && (employees.find((employee) => employee._id === editingId)?.role || String(employees.find((employee) => employee._id === editingId)?.position || "").toLowerCase()) !== "owner") || !["owner", "admin"].includes(currentRole) },
+                  { value: "admin", label: "Admin", disabled: currentRole !== "owner" },
+                  { value: "manager", label: "Manager" },
+                  ...(() => {
+                    const employee = employees.find((item) => item._id === editingId);
+                    const role = String(employee?.role || "").trim().toLowerCase();
+                    return role && !["owner", "admin", "manager"].includes(role)
+                      ? [{ value: role, label: role }]
+                      : [];
+                  })(),
+                  { value: "new", label: "Yangi" },
+                ]}
+                onChange={(value) => {
+                  if (value === "owner") form.setFieldValue("canLogin", true);
+                  if (value !== "new") form.setFieldValue("customRole", "");
+                }}
+              />
+            </Form.Item>
+            {selectedRole === "new" ? (
+              <Form.Item name="customRole" label="Yangi rol nomi" rules={[{ required: true, whitespace: true, message: "Rol nomini yozing" }, { max: 40, message: "Rol nomi 40 belgidan oshmasin" }]}>
+                <Input placeholder="Masalan: qorovul, resepsionist" maxLength={40} />
+              </Form.Item>
+            ) : null}
 
             {/* <Form.Item
               name="salary"
@@ -392,34 +438,43 @@ function EmployeesPage() {
                 placeholder="Oylik kiriting"
               />
             </Form.Item> */}
-            <Form.Item
-              name="salary"
-              label="Oylik"
-              rules={[
-                { required: true, message: "Oylik majburiy" },
-                {
-                  type: "number",
-                  min: 1,
-                  message: "Eng kamida 1 so'm kiriting",
-                },
-              ]}
-            >
-              <InputNumber
-                min={1}
-                precision={0}
-                style={{ width: "100%" }}
-                formatter={(value) =>
-                  String(value || "").replace(/\B(?=(\d{3})+(?!\d))/g, " ")
-                }
-                parser={(value) => {
-                  const digits = String(value || "").replace(/[^\d]/g, "");
-                  const withoutLeadingZeros = digits.replace(/^0+/, "");
-                  return withoutLeadingZeros;
-                }}
-                onKeyDown={blockNonIntegerKeys}
-                onPaste={preventInvalidAmountPaste}
-              />
-            </Form.Item>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <Form.Item name="salaryType" label="Oylik turi" rules={[{ required: true, message: "Oylik turini tanlang" }]} style={{ flex: "1 1 220px" }}>
+                <Radio.Group buttonStyle="solid" style={{ display: "flex", width: "100%" }}>
+                  <Radio.Button value="fixed" style={{ flex: 1, textAlign: "center" }}>Doimiy oylik</Radio.Button>
+                  <Radio.Button value="hourly" style={{ flex: 1, textAlign: "center" }}>Soatlik</Radio.Button>
+                </Radio.Group>
+              </Form.Item>
+              <Form.Item
+                name="salary"
+                label={salaryType === "hourly" ? "Bir soat narxi (so'm)" : "Doimiy oylik (so'm)"}
+                style={{ flex: "1 1 220px" }}
+                rules={[
+                  { required: true, message: "Oylik majburiy" },
+                  {
+                    type: "number",
+                    min: 1,
+                    message: "Eng kamida 1 so'm kiriting",
+                  },
+                ]}
+              >
+                <InputNumber
+                  min={1}
+                  precision={0}
+                  style={{ width: "100%" }}
+                  formatter={(value) =>
+                    String(value || "").replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+                  }
+                  parser={(value) => {
+                    const digits = String(value || "").replace(/[^\d]/g, "");
+                    const withoutLeadingZeros = digits.replace(/^0+/, "");
+                    return withoutLeadingZeros;
+                  }}
+                  onKeyDown={blockNonIntegerKeys}
+                  onPaste={preventInvalidAmountPaste}
+                />
+              </Form.Item>
+            </div>
 
             <Form.Item
               name="canLogin"

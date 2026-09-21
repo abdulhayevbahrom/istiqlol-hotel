@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import OwnerOnly from "../components/OwnerOnly";
 import {
   Button,
   Form,
@@ -444,7 +445,7 @@ function RoomsPage() {
                       />
                     </svg>
                   </button>
-                  <Popconfirm
+                  <OwnerOnly><Popconfirm
                     title="Xonani o'chirish"
                     description="Ushbu amalni tasdiqlaysizmi?"
                     okText="O'chirish"
@@ -482,7 +483,7 @@ function RoomsPage() {
                         />
                       </svg>
                     </button>
-                  </Popconfirm>
+                  </Popconfirm></OwnerOnly>
                 </div>
               </article>
             ))}

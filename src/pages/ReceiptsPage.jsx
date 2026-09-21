@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import OwnerOnly from "../components/OwnerOnly";
 import {
   Button,
   DatePicker,
@@ -650,7 +651,7 @@ function ReceiptsPage() {
                         onPaste={preventInvalidAmountPaste}
                       />
                     </Form.Item>
-                    <Button
+                    <OwnerOnly><Button
                       danger
                       icon={<FiTrash2 />}
                       className="receipt-remove-btn"
@@ -658,7 +659,7 @@ function ReceiptsPage() {
                       onClick={() => remove(field.name)}
                     >
                       O'chirish
-                    </Button>
+                    </Button></OwnerOnly>
                   </div>
                 ))}
                 <Form.ErrorList errors={errors} />
@@ -814,7 +815,7 @@ function ReceiptsPage() {
                             aria-label="Tahrirlash"
                             onClick={() => openEditReceipt(record)}
                           />
-                          <Popconfirm
+                          <OwnerOnly><Popconfirm
                             title="Kvitansiya o'chirilsinmi?"
                             okText="Ha"
                             cancelText="Yo'q"
@@ -825,7 +826,7 @@ function ReceiptsPage() {
                               icon={<FiTrash2 />}
                               aria-label="O'chirish"
                             />
-                          </Popconfirm>
+                          </Popconfirm></OwnerOnly>
                         </div>
                       ),
                     },
@@ -952,9 +953,9 @@ function ReceiptEditForm({ form, loading, onValuesChange, onFinish }) {
                 <Form.Item name={[field.name, "total"]} rules={[{ required: true }]}>
                   <InputNumber min={0} formatter={formatInputNumber} parser={parseInputNumber} onKeyDown={blockNonIntegerKeys} onPaste={preventInvalidAmountPaste} />
                 </Form.Item>
-                <Button danger icon={<FiTrash2 />} className="receipt-remove-btn" onClick={() => remove(field.name)}>
+                <OwnerOnly><Button danger icon={<FiTrash2 />} className="receipt-remove-btn" onClick={() => remove(field.name)}>
                   O'chirish
-                </Button>
+                </Button></OwnerOnly>
               </div>
             ))}
             <Form.ErrorList errors={errors} />

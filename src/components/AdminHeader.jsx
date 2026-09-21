@@ -24,6 +24,7 @@ const titles = {
   "/guests-debtors": "Qarzdorlar",
   "/groups": "Guruhlar",
   "/attendance": "Davomat",
+  "/payroll": "Oylik",
   "/expenses": "Xarajatlar",
   "/finance": "Moliya",
   "/reports": "Hisobotlar",

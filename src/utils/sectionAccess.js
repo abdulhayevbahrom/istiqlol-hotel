@@ -8,7 +8,7 @@ const guestSections = [
 ];
 
 export const hasFullAccess = (role = "") =>
-  role === "__system_admin__";
+  ["__system_admin__", "owner", "admin"].includes(role);
 
 export const hasSectionAccess = (sections = [], requiredSection = "") => {
   const current = Array.isArray(sections)

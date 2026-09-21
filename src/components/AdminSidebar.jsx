@@ -1,6 +1,5 @@
 import { NavLink } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Button, Form, Input, Modal } from "antd";
 import { navItems } from "../constants/navItems";
 import {
   FiBarChart2,
@@ -17,20 +16,12 @@ import {
   FiUserCheck,
   FiUsers,
   FiX,
-  FiLifeBuoy,
 } from "react-icons/fi";
 import { RiHotelLine } from "react-icons/ri";
 import { useState } from "react";
 import "./sidebar.css";
 import { hasFullAccess, hasSectionAccess } from "../utils/sectionAccess";
-import {
-  useGetSettingsQuery,
-  useSendSupportMessageMutation,
-} from "../store/employeeApi";
-import { toast } from "react-toastify";
-
-// support icon
-import { BiSupport } from "react-icons/bi";
+import { useGetSettingsQuery } from "../store/employeeApi";
 
 const iconByPath = {
   "/dashboard": FiBarChart2,
@@ -54,12 +45,8 @@ const iconByPath = {
 };
 
 function AdminSidebar() {
-  const [supportForm] = Form.useForm();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const user = useSelector((state) => state.auth.user);
-  const [sendSupportMessage, { isLoading: isSendingSupport }] =
-    useSendSupportMessageMutation();
 
   const { data: settingsData } = useGetSettingsQuery();
   const hotelName =
@@ -67,40 +54,6 @@ function AdminSidebar() {
     localStorage.getItem("hotelName") ||
     "Mehmonxona nomi";
 
-  const openSupportModal = () => {
-    supportForm.setFieldsValue({
-      hotelName,
-      subject: "",
-      complaint: "",
-      phone: "",
-    });
-    setIsSupportOpen(true);
-  };
-
-  const closeSupportModal = () => {
-    setIsSupportOpen(false);
-    supportForm.resetFields();
-  };
-
-  const onSendSupport = async (values) => {
-    try {
-      await sendSupportMessage({
-        hotelName: values.hotelName || hotelName,
-        subject: values.subject,
-        complaint: values.complaint,
-        phone: values.phone,
-      }).unwrap();
-
-      toast.success("Shikoyatingiz qabul qilindi. Tez orada aloqaga chiqamiz.");
-      closeSupportModal();
-    } catch (error) {
-      toast.error(
-        error?.data?.message ||
-          error?.data?.innerData ||
-          "Supportga yuborishda xatolik",
-      );
-    }
-  };
   const allowedItems =
     hasFullAccess(user?.role)
       ? navItems
@@ -138,17 +91,6 @@ function AdminSidebar() {
           </NavLink>
         ))}
       </nav>
-
-      <div className="side-support-wrap">
-        <button
-          type="button"
-          className="side-support-btn"
-          onClick={openSupportModal}
-        >
-          <BiSupport size={16} />
-          <span>Support</span>
-        </button>
-      </div>
 
       <div className="mobile-bottom-nav">
         {mobilePrimaryItems.map((item) => (
@@ -226,79 +168,8 @@ function AdminSidebar() {
               <span>{item.label}</span>
             </NavLink>
           ))}
-          <button
-            type="button"
-            className="mobile-menu-link support-link"
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              openSupportModal();
-            }}
-          >
-            <span className="side-icon">
-              <BiSupport size={16} />
-            </span>
-            <span>Support</span>
-          </button>
         </nav>
       </div>
-
-      <Modal
-        open={isSupportOpen}
-        onCancel={closeSupportModal}
-        footer={null}
-        title="Dasturchiga yozish"
-        width={520}
-        destroyOnHidden
-        rootClassName="employee-modal-theme"
-      >
-        <Form
-          form={supportForm}
-          layout="vertical"
-          requiredMark={false}
-          onFinish={onSendSupport}
-        >
-          <Form.Item hidden name="hotelName" label="Mehmonxona nomi">
-            <Input disabled />
-          </Form.Item>
-          <Form.Item
-            name="subject"
-            label="Mavzu"
-            rules={[{ required: true, message: "Mavzu majburiy" }]}
-          >
-            <Input maxLength={80} />
-          </Form.Item>
-          <Form.Item
-            name="complaint"
-            label="Shikoyat"
-            rules={[{ required: true, message: "Shikoyat matni majburiy" }]}
-          >
-            <Input.TextArea rows={4} maxLength={500} />
-          </Form.Item>
-          <Form.Item
-            name="phone"
-            label="Aloqa uchun telefon"
-            rules={[
-              { required: true, message: "Telefon majburiy" },
-              {
-                pattern: /^\+?\d{7,15}$/,
-                message: "Telefon formati noto'g'ri",
-              },
-            ]}
-          >
-            <Input placeholder="+998901234567" />
-          </Form.Item>
-          <div className="row-actions">
-            <Button
-              htmlType="submit"
-              className="hotel-primary-btn"
-              loading={isSendingSupport}
-            >
-              Yuborish
-            </Button>
-            <Button onClick={closeSupportModal}>Yopish</Button>
-          </div>
-        </Form>
-      </Modal>
     </aside>
   );
 }
