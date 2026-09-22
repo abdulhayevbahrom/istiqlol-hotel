@@ -9,7 +9,7 @@ const getEnvValue = (key, fallback = "") => {
 const removeTrailingSlash = (url) => url.replace(/\/+$/, "");
 
 const mainApiBaseUrl = removeTrailingSlash(
-  getEnvValue("VITE_MAIN_API_BASE_URL", "https://oydinplaza.medme.uz"),
+  getEnvValue("VITE_MAIN_API_BASE_URL",),
 );
 
 const defaultMainApiUrl = `${mainApiBaseUrl}/api`;

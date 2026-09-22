@@ -534,6 +534,9 @@ function OccupancyPage() {
                 <div><span>Bron raqami</span><strong>{selectedGuest.externalReservationId || "-"}</strong></div>
               </>
             ) : null}
+            {selectedGuest.source === "website" && selectedGuest.bookingReference ? (
+              <div><span>Bron raqami</span><strong>{selectedGuest.bookingReference}</strong></div>
+            ) : null}
           </div>
         ) : null}
       </Modal>

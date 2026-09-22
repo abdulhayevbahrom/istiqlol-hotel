@@ -213,6 +213,14 @@ export const employeeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Guest", "Room"],
     }),
+    resolveWebsiteBookingRooms: builder.mutation({
+      query: ({ reference, activeGuestIds }) => ({
+        url: `/website-booking/${encodeURIComponent(reference)}/resolve`,
+        method: "POST",
+        body: { activeGuestIds },
+      }),
+      invalidatesTags: ["Guest", "Room"],
+    }),
     continueGuestStay: builder.mutation({
       query: ({ id, additionalDays }) => ({
         url: `/guest/${id}/continue`,
@@ -517,6 +525,7 @@ export const {
   useCheckoutGuestMutation,
   useActivateBookedGuestMutation,
   useCancelBookedGuestMutation,
+  useResolveWebsiteBookingRoomsMutation,
   useContinueGuestStayMutation,
   useCheckoutGuestsBulkMutation,
   useDeleteGuestMutation,

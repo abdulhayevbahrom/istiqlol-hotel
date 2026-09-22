@@ -44,6 +44,7 @@ import {
   useCheckoutGuestMutation,
   useActivateBookedGuestMutation,
   useCancelBookedGuestMutation,
+  useResolveWebsiteBookingRoomsMutation,
   useContinueGuestStayMutation,
   useCheckoutGuestsBulkMutation,
   useDecideVipRequestMutation,
@@ -318,7 +319,26 @@ function GuestsPage({ tab = "active" }) {
     [rooms],
   );
   const guestsPayload = guestsData?.innerData || { items: [], pagination: {} };
-  const guests = guestsPayload.items || [];
+  const rawGuests = guestsPayload.items || [];
+  const guests = useMemo(() => {
+    if (effectiveTab !== "booked") return rawGuests;
+    const grouped = new Map();
+    rawGuests.forEach((guest) => {
+      const key = guest.source === "website" && guest.bookingReference
+        ? `website:${guest.bookingReference}`
+        : `guest:${guest._id}`;
+      const current = grouped.get(key);
+      if (!current) {
+        grouped.set(key, { ...guest, bookingGroupGuests: [guest] });
+        return;
+      }
+      current.bookingGroupGuests.push(guest);
+      current.totalAmount = Number(current.totalAmount || 0) + Number(guest.totalAmount || 0);
+      current.paidAmount = Number(current.paidAmount || 0) + Number(guest.paidAmount || 0);
+      current.debtAmount = Number(current.debtAmount || 0) + Number(guest.debtAmount || 0);
+    });
+    return [...grouped.values()];
+  }, [effectiveTab, rawGuests]);
   const pagination = guestsPayload.pagination || {
     page: 1,
     total: 0,
@@ -434,6 +454,8 @@ function GuestsPage({ tab = "active" }) {
     useActivateBookedGuestMutation();
   const [cancelBookedGuest, { isLoading: cancellingBooking }] =
     useCancelBookedGuestMutation();
+  const [resolveWebsiteBookingRooms, { isLoading: resolvingWebsiteBooking }] =
+    useResolveWebsiteBookingRoomsMutation();
   const [continueGuestStay, { isLoading: continuingStay }] =
     useContinueGuestStayMutation();
   const [checkoutGuestsBulk, { isLoading: bulkCheckingOut }] =
@@ -445,6 +467,8 @@ function GuestsPage({ tab = "active" }) {
     id: "",
     action: "",
   });
+  const [bookingActivationGroup, setBookingActivationGroup] = useState(null);
+  const [bookingActivationIds, setBookingActivationIds] = useState([]);
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentGuestId, setPaymentGuestId] = useState("");
@@ -760,9 +784,36 @@ function GuestsPage({ tab = "active" }) {
     }
   };
 
-  const onCancelBooking = async (id) => {
+  const openWebsiteBookingActivation = (guest) => {
+    const group = guest.bookingGroupGuests?.length ? guest.bookingGroupGuests : [guest];
+    setBookingActivationGroup({ reference: guest.bookingReference, guests: group });
+    setBookingActivationIds(group.map((item) => item._id));
+  };
+
+  const onResolveWebsiteBooking = async () => {
+    if (!bookingActivationGroup?.reference || !bookingActivationIds.length) {
+      toast.info("Kamida bitta xonani tanlang");
+      return;
+    }
     try {
-      const result = await cancelBookedGuest(id).unwrap();
+      const result = await resolveWebsiteBookingRooms({
+        reference: bookingActivationGroup.reference,
+        activeGuestIds: bookingActivationIds,
+      }).unwrap();
+      toast.success(result?.message || "Bron xonalari yangilandi");
+      setBookingActivationGroup(null);
+      setBookingActivationIds([]);
+      setActiveListTab("active");
+    } catch (err) {
+      toast.error(err?.data?.message || "Bron xonalarini aktiv qilishda xatolik");
+    }
+  };
+
+  const onCancelBooking = async (id, groupGuests = []) => {
+    try {
+      const ids = groupGuests.length ? groupGuests.map((item) => item._id) : [id];
+      const results = await Promise.all(ids.map((guestId) => cancelBookedGuest(guestId).unwrap()));
+      const result = results[0];
       toast.success(result?.message || "Bron bekor qilindi");
       setSelectedGuestIds([]);
     } catch (err) {
@@ -1120,7 +1171,7 @@ function GuestsPage({ tab = "active" }) {
                 </button>
               ) : null}
               <Input
-                placeholder="Ism/Familiya/Passport/Xona/Tashkilot"
+                placeholder="Ism/Familiya/Passport/Xona/Tashkilot/Bron raqami"
                 value={filters.query}
                 onChange={(e) => onFilterChange({ query: e.target.value })}
               />
@@ -1331,7 +1382,10 @@ function GuestsPage({ tab = "active" }) {
                             <Tag color="cyan">Guruh: {guest.group.name}</Tag>
                           ) : null}
                           {isBookedGuestsTab && isWebsiteBooking(guest) ? (
-                            <Tag color="gold">Website</Tag>
+                            <>
+                              <Tag color="gold">Website</Tag>
+                              {guest.bookingReference ? <Tag color="blue">{guest.bookingReference}</Tag> : null}
+                            </>
                           ) : null}
                         </div>
                       </td>
@@ -1350,14 +1404,12 @@ function GuestsPage({ tab = "active" }) {
                         </td>
                       ) : null}
                       <td data-label="Xona">
-                        <b>{guest.room?.roomNumber || "-"}</b>
-                        <br />
-                        <span className="room-floor">
-                          {guest.room?.korpus
-                            ? `${guest.room.korpus}`
-                            : "-"}
-                          {guest.room?.floor ? ` · ${guest.room.floor}-qavat` : ""}
-                        </span>
+                        {(guest.bookingGroupGuests || [guest]).map((item) => (
+                          <div key={item._id}>
+                            <b>{item.room?.korpus ? `${item.room.korpus}-` : ""}{item.room?.roomNumber || "-"}</b>
+                            <span className="room-floor">{item.room?.category ? ` · ${item.room.category}` : ""}</span>
+                          </div>
+                        ))}
                       </td>
                       <td data-label={isHistoryTab ? "Kunlar" : isBookedGuestsTab ? "Bron muddati" : "Yashash muddati"}>
                         <div className="guest-days-cell">
@@ -1546,19 +1598,25 @@ function GuestsPage({ tab = "active" }) {
                             <FiClock size={16} />
                           </button>
                           {isBookedGuestsTab ? (
-                            <Popconfirm
-                              title="Bronni aktiv qilish"
-                              description="Mehmon kelgan deb belgilanadi va xona band bo'ladi"
-                              okText="Aktiv qilish"
-                              cancelText="Bekor"
-                              okButtonProps={{ loading: activatingBooking }}
-                              onConfirm={() => onActivateBooking(guest._id)}
-                              overlayClassName="hotel-popconfirm"
-                            >
-                              <button className="icon-btn" title="Aktiv qilish">
+                            guest.source === "website" && guest.bookingReference ? (
+                              <button className="icon-btn" title="Xonalarni tanlab aktiv qilish" onClick={() => openWebsiteBookingActivation(guest)}>
                                 <FiUserCheck size={16} />
                               </button>
-                            </Popconfirm>
+                            ) : (
+                              <Popconfirm
+                                title="Bronni aktiv qilish"
+                                description="Mehmon kelgan deb belgilanadi va xona band bo'ladi"
+                                okText="Aktiv qilish"
+                                cancelText="Bekor"
+                                okButtonProps={{ loading: activatingBooking }}
+                                onConfirm={() => onActivateBooking(guest._id)}
+                                overlayClassName="hotel-popconfirm"
+                              >
+                                <button className="icon-btn" title="Aktiv qilish">
+                                  <FiUserCheck size={16} />
+                                </button>
+                              </Popconfirm>
+                            )
                           ) : null}
                           {isBookedGuestsTab ? (
                             <Popconfirm
@@ -1570,7 +1628,7 @@ function GuestsPage({ tab = "active" }) {
                                 danger: true,
                                 loading: cancellingBooking,
                               }}
-                              onConfirm={() => onCancelBooking(guest._id)}
+                              onConfirm={() => onCancelBooking(guest._id, guest.bookingGroupGuests)}
                               overlayClassName="hotel-popconfirm"
                             >
                               <button className="icon-btn" title="Bronni bekor qilish">
@@ -1649,6 +1707,33 @@ function GuestsPage({ tab = "active" }) {
           </>
         )}
       </div>
+
+      <Modal
+        open={Boolean(bookingActivationGroup)}
+        title={`Bron xonalarini aktiv qilish — ${bookingActivationGroup?.reference || ""}`}
+        onCancel={() => { setBookingActivationGroup(null); setBookingActivationIds([]); }}
+        onOk={onResolveWebsiteBooking}
+        okText="Tanlanganlarni aktiv qilish"
+        cancelText="Yopish"
+        confirmLoading={resolvingWebsiteBooking}
+        okButtonProps={{ disabled: !bookingActivationIds.length }}
+        width={520}
+      >
+        <p>Kelgan mijozlarga kerak bo‘lgan xonalarni belgilang. Belgilanmagan xonalar broni bekor qilinadi va xona bo‘sh holatga qaytadi.</p>
+        <Checkbox.Group
+          value={bookingActivationIds}
+          onChange={setBookingActivationIds}
+          style={{ display: "grid", gap: 10, width: "100%" }}
+        >
+          {(bookingActivationGroup?.guests || []).map((item) => (
+            <Checkbox key={item._id} value={item._id}>
+              <strong>{item.room?.korpus ? `${item.room.korpus}-` : ""}{item.room?.roomNumber || "-"}</strong>
+              {item.room?.category ? ` · ${item.room.category}` : ""}
+              {item.room?.capacity ? ` · ${item.room.capacity} kishilik` : ""}
+            </Checkbox>
+          ))}
+        </Checkbox.Group>
+      </Modal>
 
       <Modal
         open={isFilterModalOpen}
@@ -2529,8 +2614,11 @@ function GuestsPage({ tab = "active" }) {
               />
             ) : null}
             <h1>{hotelName}</h1>
-            <p>Namangan sh. Amir Temur ko'chasi</p>
-            <p>Tel: +998 99 999 99 99</p>
+            <p>
+              Namangan shahar Davlatobod tumani To'quvchi MFY I.Karimov
+              ko'cha 20-uy
+            </p>
+            <p>Tel: +998 78 223 00 15</p>
             <h2>Mehmon Hisoboti</h2>
           </div>
 
