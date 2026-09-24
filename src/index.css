@@ -40,6 +40,15 @@ body {
   gap: 3px;
 }
 
+.install-prompt-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 5px 14px rgba(92, 73, 224, 0.22);
+}
+
 .install-prompt strong {
   color: var(--hotel-navy);
   font-size: 14px;

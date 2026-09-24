@@ -102,6 +102,12 @@ function InstallPrompt() {
   return (
     <>
       <div className="install-prompt" aria-label="Ilovani o'rnatish">
+        <img
+          className="install-prompt-icon"
+          src="/icons/icon-192.png"
+          alt=""
+          aria-hidden="true"
+        />
         <div>
           <strong>Ilova sifatida ishlating</strong>
           <span>Telefon yoki kompyuteringizga o‘rnating</span>
