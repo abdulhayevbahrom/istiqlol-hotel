@@ -43,6 +43,71 @@ const resolveAssetUrl = (value) => {
   return `${API_CONFIG.MAIN_API.baseUrl}${src}`;
 };
 
+const MAX_CATEGORY_IMAGE_BYTES = 800 * 1024;
+const MAX_CATEGORY_IMAGE_DIMENSION = 1920;
+
+const loadImage = (file) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Rasmni o'qib bo'lmadi"));
+    };
+    image.src = url;
+  });
+
+const canvasToBlob = (canvas, quality) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Rasmni siqib bo'lmadi"))),
+      "image/webp",
+      quality,
+    );
+  });
+
+const optimizeCategoryImage = async (file) => {
+  if (!file?.type?.startsWith("image/")) {
+    throw new Error("Faqat rasm fayllarini yuklash mumkin");
+  }
+  if (file.size <= MAX_CATEGORY_IMAGE_BYTES) return file;
+
+  const image = await loadImage(file);
+  const scale = Math.min(
+    1,
+    MAX_CATEGORY_IMAGE_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight),
+  );
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Rasmni qayta ishlashda xatolik");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  let blob;
+  for (const quality of [0.82, 0.7, 0.58, 0.46]) {
+    blob = await canvasToBlob(canvas, quality);
+    if (blob.size <= MAX_CATEGORY_IMAGE_BYTES) break;
+  }
+
+  const baseName = String(file.name || "room-image").replace(/\.[^.]+$/, "");
+  return new File([blob], `${baseName}.webp`, {
+    type: "image/webp",
+    lastModified: Date.now(),
+  });
+};
+
+const getCategoryImageUploadError = (error) => {
+  if (Number(error?.status || error?.originalStatus) === 413) {
+    return "Rasm hajmi server limitidan oshib ketdi";
+  }
+  return error?.data?.message || error?.message || "Rasm yuklashda xatolik";
+};
+
 function SettingsPage() {
   const [form] = Form.useForm();
   const [categoryForm] = Form.useForm();
@@ -160,7 +225,7 @@ function SettingsPage() {
       {},
     );
     setRoomCategoryImages(nextImages);
-    toast.success(result?.message || "Kategoriya rasmlari saqlandi");
+    return nextImages[category] || [];
   };
 
   const onCategoryImagesChange = async (category, event) => {
@@ -173,9 +238,16 @@ function SettingsPage() {
       return;
     }
     try {
-      await saveCategoryImages(category, existingImages, files);
+      let uploadedImages = existingImages;
+      for (const file of files) {
+        const optimizedFile = await optimizeCategoryImage(file);
+        // Production proxy request hajmini cheklashi mumkin, shuning uchun
+        // rasmlarni siqib, bittadan yuboramiz.
+        uploadedImages = await saveCategoryImages(category, uploadedImages, [optimizedFile]);
+      }
+      toast.success("Kategoriya rasmlari saqlandi");
     } catch (err) {
-      toast.error(err?.data?.message || "Rasm yuklashda xatolik");
+      toast.error(getCategoryImageUploadError(err));
     }
   };
 
@@ -185,8 +257,9 @@ function SettingsPage() {
         (item) => item !== image,
       );
       await saveCategoryImages(category, existingImages);
+      toast.success("Kategoriya rasmi o'chirildi");
     } catch (err) {
-      toast.error(err?.data?.message || "Rasmni o'chirishda xatolik");
+      toast.error(getCategoryImageUploadError(err));
     }
   };
 

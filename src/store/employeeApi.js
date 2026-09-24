@@ -174,7 +174,7 @@ export const employeeApi = apiSlice.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["Guest"],
+      invalidatesTags: ["Guest", "DailyReport"],
     }),
     addGuestPayment: builder.mutation({
       query: ({ id, ...body }) => ({
@@ -394,6 +394,7 @@ export const employeeApi = apiSlice.injectEndpoints({
         if (params.floor) search.set("floor", String(params.floor));
         return `/reports-daily?${search.toString()}`;
       },
+      providesTags: ["DailyReport"],
     }),
     getClientSalesReport: builder.query({
       query: ({

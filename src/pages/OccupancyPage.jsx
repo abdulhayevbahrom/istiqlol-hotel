@@ -335,6 +335,7 @@ function OccupancyPage() {
           start,
           end,
           lane: 1,
+          isTransferredStay: guest.status === "active" && Boolean(stay.to),
           isPastStay: Boolean(checkoutDay < todayStart),
           isTodayCheckout: Boolean(checkoutDay.getTime() === todayStart.getTime()),
         };
@@ -398,6 +399,7 @@ function OccupancyPage() {
 
         <div className="occupancy-legend" aria-label="Holatlar izohi">
           <span><i className="occupancy-dot occupancy-dot-active" /> Hozir yashayapti</span>
+          <span><i className="occupancy-dot occupancy-dot-transferred" /> Oldingi xona</span>
           <span><i className="occupancy-dot occupancy-dot-booked" /> Bron qilingan</span>
           <span><i className="occupancy-dot occupancy-dot-free" /> Bo‘sh</span>
           <span><i className="occupancy-dot occupancy-dot-repair" /> Remont</span>
@@ -445,11 +447,13 @@ function OccupancyPage() {
                           className={[
                             "occupancy-booking",
                             `occupancy-booking-${entry.status}`,
-                            entry.isPastStay
-                              ? "is-past-stay"
-                              : entry.isTodayCheckout
-                                ? "is-today-checkout"
-                                : "is-current-stay",
+                            entry.isTransferredStay
+                              ? "is-transferred-stay"
+                              : entry.isPastStay
+                                ? "is-past-stay"
+                                : entry.isTodayCheckout
+                                  ? "is-today-checkout"
+                                  : "is-current-stay",
                           ].join(" ")}
                           style={{
                             left: `${left}px`,

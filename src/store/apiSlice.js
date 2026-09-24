@@ -84,6 +84,7 @@ export const apiSlice = createApi({
     "GroupBooking",
     "Receipt",
     "AuditLog",
+    "DailyReport",
     "StaffAttendance",
     "StaffPayroll",
     "StaffPayrollEntry",

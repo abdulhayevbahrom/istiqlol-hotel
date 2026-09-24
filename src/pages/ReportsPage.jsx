@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/uz";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import {
   FiActivity,
@@ -24,6 +25,10 @@ import {
   useGetReportsSummaryQuery,
   useGetRoomsQuery,
 } from "../store/employeeApi";
+import {
+  acquireSocketConnection,
+  releaseSocketConnection,
+} from "../config/socketConfig";
 import "./reports.css";
 
 dayjs.locale("uz");
@@ -757,6 +762,7 @@ function DailyReportContent({
 
 function ReportsPage() {
   const navigate = useNavigate();
+  const token = useSelector((state) => state.auth.token);
   const dailyReportRef = useRef(null);
   const [selectedMonth, setSelectedMonth] = useState(() =>
     dayjs().startOf("month"),
@@ -787,6 +793,7 @@ function ReportsPage() {
     data: dailyResponse,
     isFetching: isDailyReportFetching,
     error: dailyReportError,
+    refetch: refetchDailyReport,
   } = useGetDailyReportQuery(
     {
       date: dailyDateKey,
@@ -796,6 +803,31 @@ function ReportsPage() {
     },
     { skip: !["daily", "accounting"].includes(activeTab) },
   );
+
+  useEffect(() => {
+    if (!token || !["daily", "accounting"].includes(activeTab)) {
+      return undefined;
+    }
+
+    const socket = acquireSocketConnection(token);
+    if (!socket) return undefined;
+    let refreshTimer = null;
+
+    const refreshDailyReport = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refetchDailyReport();
+      }, 120);
+    };
+
+    socket.on("guest_updated", refreshDailyReport);
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      socket.off("guest_updated", refreshDailyReport);
+      releaseSocketConnection(socket);
+    };
+  }, [activeTab, refetchDailyReport, token]);
   const { data: roomsData } = useGetRoomsQuery(undefined, {
     skip: activeTab !== "accounting",
   });

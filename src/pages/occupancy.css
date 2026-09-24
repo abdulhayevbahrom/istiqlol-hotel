@@ -48,6 +48,9 @@
 .occupancy-dot-active {
   background: #2f7d61;
 }
+.occupancy-dot-transferred {
+  background: #e53e3e;
+}
 .occupancy-dot-booked {
   background: #3c74b9;
 }
@@ -210,6 +213,9 @@
 }
 .occupancy-booking-active {
   background: #2f7d61;
+}
+.occupancy-booking.is-transferred-stay {
+  background: #e53e3e;
 }
 .occupancy-booking-booked {
   background: #3c74b9;
