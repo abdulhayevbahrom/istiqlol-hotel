@@ -19,6 +19,7 @@ import {
   useGetRoomsQuery,
   useGetSettingsQuery,
   useLazyGetGuestByPassportQuery,
+  useLazyGetGuestsQuery,
 } from "../store/employeeApi";
 import { organizationOptions } from "../constants/organizations";
 import GroupBookingForm from "./GroupBookingForm";
@@ -135,10 +136,15 @@ function GuestCheckinPage() {
   const [createGuestsBulk, { isLoading: isBulkLoading }] =
     useCreateGuestsBulkMutation();
   const [fetchGuestByPassport] = useLazyGetGuestByPassportQuery();
+  const [searchGuests, { isFetching: isSearchingGuests }] =
+    useLazyGetGuestsQuery();
   const passportValue = Form.useWatch("passport", form);
   const selectedRoomId = Form.useWatch("room", form);
   const additionalGuests = Form.useWatch("additionalGuests", form) || [];
   const latestPassportRef = useRef("");
+  const latestGuestSearchRef = useRef("");
+  const guestSearchTimerRef = useRef(null);
+  const [guestOptions, setGuestOptions] = useState([]);
   const [roomType, setRoomType] = useState(initialValues.roomType);
   const [guestType, setGuestType] = useState(initialValues.guestType);
   const [mode, setMode] = useState("checkin");
@@ -169,6 +175,91 @@ function GuestCheckinPage() {
   }, [selectedRoom]);
   const totalGuestsCount = 1 + additionalGuests.length;
   const canAddMoreGuests = selectedRoomFreeSlots > totalGuestsCount;
+
+  const fillGuestDetails = (guest) => {
+    if (!guest) return;
+
+    const nextGuestType = guest.guestType || "uzb";
+    const nextRate = selectedRoom
+      ? nextGuestType === "chetellik"
+        ? Number(selectedRoom.prices?.chetEllik || 0)
+        : Number(selectedRoom.prices?.oddiy || 0)
+      : undefined;
+    setGuestType(nextGuestType);
+    setIsBlacklistedPassport(Boolean(guest.isBlacklisted));
+    latestGuestSearchRef.current = "";
+    setGuestOptions([]);
+    form.setFieldsValue({
+      firstname: guest.firstname || "",
+      lastname: guest.lastname || "",
+      passport: guest.passport || "",
+      birthDate: formatIsoToUzDate(guest.birthDate),
+      phone: guest.phone || "",
+      email: guest.email || "",
+      organization: guest.organization || "",
+      guestType: nextGuestType,
+      ...(nextRate !== undefined ? { dailyRate: nextRate } : {}),
+    });
+
+    if (guest.isBlacklisted) {
+      toast.error("Bu mijoz qora ro'yxatda");
+    }
+  };
+
+  const handleGuestSearch = (value) => {
+    const query = String(value || "").trim();
+    if (guestSearchTimerRef.current) {
+      clearTimeout(guestSearchTimerRef.current);
+    }
+    if (query.length < 2) {
+      latestGuestSearchRef.current = "";
+      setGuestOptions([]);
+      return;
+    }
+
+    latestGuestSearchRef.current = query;
+    guestSearchTimerRef.current = setTimeout(async () => {
+      try {
+        const result = await searchGuests({
+          tab: "all",
+          query,
+          page: 1,
+          limit: 20,
+        }).unwrap();
+        if (latestGuestSearchRef.current !== query) return;
+
+        const items = result?.innerData?.items || [];
+        setGuestOptions(
+          items.map((guest) => ({
+            value: guest._id,
+            guest,
+            label: (
+              <div>
+                <strong>
+                  {guest.firstname || ""} {guest.lastname || ""}
+                </strong>
+                <div style={{ fontSize: 12, color: "#667085" }}>
+                  {[guest.passport, guest.phone].filter(Boolean).join(" · ") ||
+                    "Qo'shimcha ma'lumot yo'q"}
+                </div>
+              </div>
+            ),
+          })),
+        );
+      } catch (_error) {
+        if (latestGuestSearchRef.current === query) setGuestOptions([]);
+      }
+    }, 300);
+  };
+
+  useEffect(
+    () => () => {
+      if (guestSearchTimerRef.current) {
+        clearTimeout(guestSearchTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const roomTypeAvailability = useMemo(() => {
     const availability = {};
@@ -690,7 +781,17 @@ function GuestCheckinPage() {
               label="Ism"
               rules={[{ required: true, message: "Ism majburiy" }]}
             >
-              <Input />
+              <AutoComplete
+                options={guestOptions}
+                onSearch={handleGuestSearch}
+                onSelect={(_value, option) => fillGuestDetails(option.guest)}
+                onClear={() => setGuestOptions([])}
+                notFoundContent={
+                  isSearchingGuests ? "Qidirilmoqda..." : "Mijoz topilmadi"
+                }
+                placeholder="Ism kiriting yoki mavjud mijozni tanlang"
+                allowClear
+              />
             </Form.Item>
             <Form.Item
               name="lastname"
