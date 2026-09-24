@@ -40,6 +40,11 @@ body {
   gap: 3px;
 }
 
+.install-prompt strong {
+  color: var(--hotel-navy);
+  font-size: 14px;
+}
+
 .install-prompt span {
   color: #6b7280;
   font-size: 12px;
@@ -61,6 +66,60 @@ body {
   background: transparent;
   color: #6b7280;
   font-size: 18px;
+}
+
+.install-help-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(31, 47, 70, 0.48);
+}
+
+.install-help {
+  width: min(420px, 100%);
+  padding: 22px;
+  border-radius: 16px;
+  background: #fffaf1;
+  box-shadow: 0 20px 48px rgba(31, 47, 70, 0.24);
+}
+
+.install-help h2 {
+  margin: 0 0 10px;
+  color: var(--hotel-navy);
+  font-size: 20px;
+}
+
+.install-help p {
+  margin: 0 0 18px;
+  color: #4b5563;
+  line-height: 1.55;
+}
+
+.install-help button {
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 14px;
+  background: var(--hotel-gold);
+  color: var(--hotel-navy);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+@media (max-width: 600px) {
+  .install-prompt {
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 12px;
+    justify-content: space-between;
+  }
+
+  .install-prompt span {
+    display: none;
+  }
 }
 
 a {

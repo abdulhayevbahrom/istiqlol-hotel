@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import AdminHeader from "../components/AdminHeader";
 import { useGetSettingsQuery } from "../store/employeeApi";
-import InstallPrompt from "../components/InstallPrompt";
 
 function AdminLayout() {
   const { data: settingsData } = useGetSettingsQuery();
@@ -23,7 +22,6 @@ function AdminLayout() {
           <Outlet />
         </section>
       </div>
-      <InstallPrompt />
     </div>
   );
 }
