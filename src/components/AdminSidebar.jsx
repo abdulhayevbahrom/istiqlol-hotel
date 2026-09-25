@@ -65,7 +65,8 @@ function AdminSidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <RiHotelLine /> {hotelName}
+        {/* <RiHotelLine />  */}
+        {hotelName}
       </div>
 
       <nav className="side-nav">
