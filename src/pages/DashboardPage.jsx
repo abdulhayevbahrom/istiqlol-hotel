@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { DatePicker } from "antd";
+import { DatePicker, Spin } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/uz";
 import { useNavigate } from "react-router-dom";
@@ -47,6 +47,10 @@ const RECENT_STATUS_LABEL = {
 const WEEKDAY_FALLBACK = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Ju", "Shan"];
 
 const formatMoney = (value) => Number(value || 0).toLocaleString("uz-UZ");
+const formatCategoryLabel = (value) =>
+  String(value || "Noma'lum") === "bir_kishilik"
+    ? "1 kishilik"
+    : String(value || "Noma'lum");
 
 const formatCompactMoney = (value) => {
   const amount = Number(value || 0);
@@ -82,6 +86,8 @@ function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState(() =>
     dayjs().startOf("month"),
   );
+  const [selectedRoomDate, setSelectedRoomDate] = useState(() => dayjs());
+  const [lastDashboardData, setLastDashboardData] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : 1200,
   );
@@ -95,12 +101,22 @@ function DashboardPage() {
   }, []);
   const monthKey = selectedMonth.format("YYYY-MM");
 
-  const { data, isLoading } = useGetDashboardSummaryQuery(monthKey, {
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
-  });
+  const { data, isLoading, isFetching } = useGetDashboardSummaryQuery(
+    {
+      month: monthKey,
+      roomDate: selectedRoomDate.format("YYYY-MM-DD"),
+    },
+    {
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    },
+  );
 
-  const dashboardData = data?.innerData || {};
+  const responseDashboardData = data?.innerData;
+  useEffect(() => {
+    if (responseDashboardData) setLastDashboardData(responseDashboardData);
+  }, [responseDashboardData]);
+  const dashboardData = responseDashboardData || lastDashboardData || {};
   const kpis = dashboardData?.kpis || {};
   const todayChange = kpis?.todayChange || { percent: 0, up: true };
   const monthChange = kpis?.monthChange || { percent: 0, up: true };
@@ -117,6 +133,22 @@ function DashboardPage() {
   const monthlyChart = dashboardData?.monthlyChart || {};
   const roomOverview = dashboardData?.roomOverview || {};
   const roomChart = roomOverview?.chart || {};
+  const roomCategories = Array.isArray(roomOverview?.categories)
+    ? roomOverview.categories
+    : [];
+  const selectedRoomDateKey = selectedRoomDate.format("YYYY-MM-DD");
+  const isRoomOverviewLoading =
+    isFetching && roomOverview?.date !== selectedRoomDateKey;
+  const roomOccupancyPercent =
+    Number(roomOverview?.total || 0) > 0
+      ? Number(
+          (
+            (Number(roomOverview?.occupied || 0) /
+              Number(roomOverview?.total || 0)) *
+            100
+          ).toFixed(1),
+        )
+      : 0;
   const weeklyChartData = useMemo(() => {
     return {
       labels: weeklyRevenue.map(
@@ -336,7 +368,7 @@ function DashboardPage() {
     setSelectedMonth(value.startOf("month"));
   };
 
-  if (isLoading && !data) {
+  if (isLoading && !responseDashboardData && !lastDashboardData) {
     return (
       <div className="dashboard-skeleton">
         <div className="dashboard-skeleton-topbar">
@@ -658,7 +690,7 @@ function DashboardPage() {
         </section>
 
         <section
-          className="dashboard-panel dashboard-clickable-card"
+          className="dashboard-panel dashboard-room-panel dashboard-clickable-card"
           {...createNavigateProps(
             navigate,
             "/rooms",
@@ -667,7 +699,19 @@ function DashboardPage() {
         >
           <header className="dashboard-panel-head">
             <h3>Xonalar holati</h3>
-            <span>{dashboardData?.month || monthKey}</span>
+            <div
+              className="dashboard-room-date-picker-wrap"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              <DatePicker
+                allowClear={false}
+                value={selectedRoomDate}
+                onChange={(value) => value && setSelectedRoomDate(value)}
+                format="DD MMMM YYYY"
+                className="dashboard-room-date-picker"
+              />
+            </div>
           </header>
           <div className="dashboard-rooms-layout">
             <div className="dashboard-rooms-donut">
@@ -692,11 +736,69 @@ function DashboardPage() {
               <div className="dashboard-room-metrics">
                 <span>Jami: {Number(roomOverview?.total || 0)} ta</span>
                 <span>
-                  Bandlik: {Number(roomOverview?.occupancyPercent || 0)}%
+                  Bandlik: {roomOccupancyPercent}%
+                </span>
+                <span>Mehmon: {Number(roomOverview?.guests || 0)} ta</span>
+                <span>Sig'im: {Number(roomOverview?.capacity || 0)} kishi</span>
+                <span>
+                  Qabul qilish mumkin: {Number(roomOverview?.availablePlaces || 0)} kishi
                 </span>
               </div>
             </div>
           </div>
+          <div className="dashboard-room-category-wrap">
+            <table className="dashboard-room-category-table">
+              <thead>
+                <tr>
+                  <th>Kategoriya</th>
+                  <th>Jami</th>
+                  <th>Band</th>
+                  <th>Bo'sh</th>
+                  <th>Mehmon</th>
+                  <th>Bo'sh o'rin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roomCategories.map((category) => (
+                  <tr key={category.category}>
+                    <td>{formatCategoryLabel(category.category)}</td>
+                    <td>{Number(category.total || 0)}</td>
+                    <td>{Number(category.occupied || 0)}</td>
+                    <td>{Number(category.free || 0)}</td>
+                    <td>{Number(category.guests || 0)}</td>
+                    <td>{Number(category.availablePlaces || 0)} kishi</td>
+                  </tr>
+                ))}
+                {!roomCategories.length ? (
+                  <tr>
+                    <td colSpan={6} className="dashboard-empty">
+                      Xona kategoriyalari mavjud emas
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Jami</td>
+                  <td>{Number(roomOverview?.total || 0)}</td>
+                  <td>{Number(roomOverview?.occupied || 0)}</td>
+                  <td>{Number(roomOverview?.free || 0)}</td>
+                  <td>{Number(roomOverview?.guests || 0)}</td>
+                  <td>{Number(roomOverview?.availablePlaces || 0)} kishi</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {isRoomOverviewLoading ? (
+            <div
+              className="dashboard-room-loading"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              <Spin size="large" />
+              <span>Xonalar holati yuklanmoqda...</span>
+            </div>
+          ) : null}
         </section>
       </div>
 

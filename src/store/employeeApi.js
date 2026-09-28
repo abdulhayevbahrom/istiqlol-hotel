@@ -374,11 +374,14 @@ export const employeeApi = apiSlice.injectEndpoints({
       providesTags: ["Expense"],
     }),
     getDashboardSummary: builder.query({
-      query: (month) => {
-        const value = String(month || "").trim();
-        return value
-          ? `/dashboard?month=${encodeURIComponent(value)}`
-          : "/dashboard";
+      query: (params = {}) => {
+        const normalized =
+          typeof params === "string" ? { month: params } : params;
+        const search = new URLSearchParams();
+        if (normalized?.month) search.set("month", normalized.month);
+        if (normalized?.roomDate) search.set("roomDate", normalized.roomDate);
+        const query = search.toString();
+        return query ? `/dashboard?${query}` : "/dashboard";
       },
     }),
     getReportsSummary: builder.query({
