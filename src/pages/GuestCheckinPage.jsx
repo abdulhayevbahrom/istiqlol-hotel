@@ -19,9 +19,9 @@ import {
   useGetRoomsQuery,
   useGetSettingsQuery,
   useLazyGetGuestByPassportQuery,
+  useLazyGetGuestOrganizationsQuery,
   useLazyGetGuestsQuery,
 } from "../store/employeeApi";
-import { organizationOptions } from "../constants/organizations";
 import GroupBookingForm from "./GroupBookingForm";
 
 const DEFAULT_ROOM_CATEGORIES = [
@@ -138,13 +138,18 @@ function GuestCheckinPage() {
   const [fetchGuestByPassport] = useLazyGetGuestByPassportQuery();
   const [searchGuests, { isFetching: isSearchingGuests }] =
     useLazyGetGuestsQuery();
+  const [searchOrganizations, { isFetching: isSearchingOrganizations }] =
+    useLazyGetGuestOrganizationsQuery();
   const passportValue = Form.useWatch("passport", form);
   const selectedRoomId = Form.useWatch("room", form);
   const additionalGuests = Form.useWatch("additionalGuests", form) || [];
   const latestPassportRef = useRef("");
   const latestGuestSearchRef = useRef("");
+  const latestOrganizationSearchRef = useRef("");
   const guestSearchTimerRef = useRef(null);
+  const organizationSearchTimerRef = useRef(null);
   const [guestOptions, setGuestOptions] = useState([]);
+  const [organizationOptions, setOrganizationOptions] = useState([]);
   const [roomType, setRoomType] = useState(initialValues.roomType);
   const [guestType, setGuestType] = useState(initialValues.guestType);
   const [mode, setMode] = useState("checkin");
@@ -252,10 +257,43 @@ function GuestCheckinPage() {
     }, 300);
   };
 
+  const handleOrganizationSearch = (value) => {
+    const query = String(value || "").trim();
+    if (organizationSearchTimerRef.current) {
+      clearTimeout(organizationSearchTimerRef.current);
+    }
+    if (query.length < 2) {
+      latestOrganizationSearchRef.current = "";
+      setOrganizationOptions([]);
+      return;
+    }
+
+    latestOrganizationSearchRef.current = query;
+    organizationSearchTimerRef.current = setTimeout(async () => {
+      try {
+        const result = await searchOrganizations(query).unwrap();
+        if (latestOrganizationSearchRef.current !== query) return;
+        setOrganizationOptions(
+          (result?.innerData || []).map((organization) => ({
+            label: organization,
+            value: organization,
+          })),
+        );
+      } catch (_error) {
+        if (latestOrganizationSearchRef.current === query) {
+          setOrganizationOptions([]);
+        }
+      }
+    }, 300);
+  };
+
   useEffect(
     () => () => {
       if (guestSearchTimerRef.current) {
         clearTimeout(guestSearchTimerRef.current);
+      }
+      if (organizationSearchTimerRef.current) {
+        clearTimeout(organizationSearchTimerRef.current);
       }
     },
     [],
@@ -852,12 +890,17 @@ function GuestCheckinPage() {
               <AutoComplete
                 allowClear
                 options={organizationOptions}
-                placeholder="Tashkilot nomi"
-                filterOption={(input, option) =>
-                  String(option?.value || "")
-                    .toLowerCase()
-                    .includes(String(input || "").toLowerCase())
+                onSearch={handleOrganizationSearch}
+                onClear={() => {
+                  latestOrganizationSearchRef.current = "";
+                  setOrganizationOptions([]);
+                }}
+                notFoundContent={
+                  isSearchingOrganizations
+                    ? "Qidirilmoqda..."
+                    : "Tashkilot topilmadi"
                 }
+                placeholder="Tashkilot nomini kiriting yoki mavjudini tanlang"
               />
             </Form.Item>
           </div>

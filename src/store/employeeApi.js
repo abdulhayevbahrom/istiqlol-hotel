@@ -80,6 +80,11 @@ export const employeeApi = apiSlice.injectEndpoints({
       },
       providesTags: ["Guest"],
     }),
+    getGuestOrganizations: builder.query({
+      query: (query = "") =>
+        `/guest-organizations?query=${encodeURIComponent(query)}`,
+      providesTags: ["Guest"],
+    }),
     getOccupancy: builder.query({
       query: ({ from, to }) =>
         `/occupancy?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
@@ -507,6 +512,7 @@ export const {
   useDeleteRoomMutation,
   useGetGuestsQuery,
   useLazyGetGuestsQuery,
+  useLazyGetGuestOrganizationsQuery,
   useGetOccupancyQuery,
   useGetVipRequestsQuery,
   useGetVipRequestsCountQuery,
