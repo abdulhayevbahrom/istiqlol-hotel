@@ -29,6 +29,10 @@ import {
 import PageLoader from "../components/PageLoader";
 
 const formatMoney = (value) => Number(value || 0).toLocaleString();
+const formatExpenseDate = (value) => {
+  const date = dayjs(value);
+  return date.isValid() ? date.format("DD.MM.YYYY HH:mm") : "-";
+};
 const paymentTypeOptions = [
   { label: "Naqd", value: "naqd" },
   { label: "Karta", value: "karta" },
@@ -104,6 +108,7 @@ function ExpensesPage() {
       category: [categories[0] || "oziq-ovqat"],
       paymentType: "naqd",
       amount: 1,
+      spentAt: dayjs(),
       note: "",
     });
     setIsModalOpen(true);
@@ -116,6 +121,7 @@ function ExpensesPage() {
       category: [expense.category || categories[0] || "oziq-ovqat"],
       paymentType: expense.paymentType || "naqd",
       amount: Number(expense.amount || 1),
+      spentAt: expense.spentAt ? dayjs(expense.spentAt) : dayjs(),
       note: expense.note || "",
     });
     setIsModalOpen(true);
@@ -136,6 +142,7 @@ function ExpensesPage() {
       category: String(normalizedCategory || "").trim(),
       paymentType: values.paymentType,
       amount: Number(values.amount || 0),
+      spentAt: values.spentAt.toISOString(),
       note: String(values.note || "").trim(),
     };
 
@@ -283,6 +290,7 @@ function ExpensesPage() {
                   }}
                 />
                 <DatePicker.RangePicker
+                  placeholder={["Boshlanish sanasi", "Tugash sanasi"]}
                   value={filterRangeValue}
                   onChange={(values) => {
                     setPage(1);
@@ -385,7 +393,7 @@ function ExpensesPage() {
                       </td>
                       <td data-label="Summasi">{formatMoney(expense.amount)} so'm</td>
                       <td data-label="Sana">
-                        {new Date(expense.spentAt).toLocaleString()}
+                        {formatExpenseDate(expense.spentAt)}
                       </td>
                       <td data-label="Kiritgan xodim">
                         {formatCreatedBy(expense.createdBy)}
@@ -514,6 +522,21 @@ function ExpensesPage() {
               onPaste={preventInvalidAmountPaste}
             />
           </Form.Item>
+          <Form.Item
+            name="spentAt"
+            label="Xarajat sanasi va vaqti"
+            rules={[
+              { required: true, message: "Xarajat sanasi va vaqtini kiriting" },
+            ]}
+          >
+            <DatePicker
+              showTime={{ format: "HH:mm" }}
+              format="DD.MM.YYYY HH:mm"
+              placeholder="Sana va vaqtni tanlang"
+              allowClear={false}
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
           <Form.Item name="note" label="Izoh">
             <Input.TextArea rows={3} />
           </Form.Item>
@@ -569,6 +592,7 @@ function ExpensesPage() {
           />
           <DatePicker.RangePicker
             style={{ width: "100%" }}
+            placeholder={["Boshlanish sanasi", "Tugash sanasi"]}
             value={filterRangeValue}
             onChange={(values) => {
               setPage(1);
