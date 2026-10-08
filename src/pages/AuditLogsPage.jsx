@@ -121,6 +121,124 @@ const shortId = (value) => {
   return `${text.slice(0, 8)}...${text.slice(-4)}`;
 };
 
+const fieldLabels = {
+  firstname: "Ism",
+  lastname: "Familiya",
+  passport: "Pasport",
+  phone: "Telefon",
+  email: "Email",
+  organization: "Tashkilot",
+  room: "Xona",
+  guestType: "Mehmon turi",
+  rooms: "Xonalar",
+  status: "Holat",
+  bookedForAt: "Bron sanasi",
+  checkInAt: "Kirish vaqti",
+  checkOutAt: "Chiqish vaqti",
+  checkoutDueAt: "Chiqish muddati",
+  stayDays: "Yashash kunlari",
+  billableDays: "Hisob kunlari",
+  dailyRate: "Kunlik narx",
+  dailyRates: "Kunlik narxlar",
+  totalAmount: "Jami summa",
+  paidAmount: "To'langan summa",
+  debtAmount: "Qarzdorlik",
+  source: "Manba",
+  note: "Izoh",
+  isBlacklisted: "Qora ro'yxat",
+  group: "Guruh",
+  prices: "Narxlar",
+  capacity: "Sig'im",
+  category: "Toifa",
+  paymentType: "To'lov turi",
+  mainPaymentType: "Asosiy to'lov turi",
+  defaultPrice: "Standart narx",
+  isActive: "Faol",
+  startDate: "Boshlanish sanasi",
+  endDate: "Tugash sanasi",
+  receiptNumber: "Kvitansiya raqami",
+};
+
+const ignoredDiffFields = new Set(["_id", "id", "__v", "createdAt", "updatedAt"]);
+
+const valuesEqual = (left, right) => JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+
+const getItemChanges = (item) => {
+  const supplied = item?.changes && typeof item.changes === "object" ? item.changes : null;
+  const candidates =
+    item?.before && item?.after && !Array.isArray(item.before) && !Array.isArray(item.after)
+      ? [...new Set([...Object.keys(item.before), ...Object.keys(item.after)])].reduce(
+          (result, key) => {
+            if (!ignoredDiffFields.has(key)) {
+              result[key] = { from: item.before[key], to: item.after[key] };
+            }
+            return result;
+          },
+          {},
+        )
+      : {};
+
+  if (supplied) Object.assign(candidates, supplied);
+
+  return Object.entries(candidates).filter(([field, change]) => {
+    if (valuesEqual(change?.from, change?.to)) return false;
+
+    // Eski mehmon loglarida tizim avtomatik hisoblagan sanalar ham saqlangan.
+    // Ular tahrirlash oynasida hodim o'zgartirgan alohida maydonlar emas.
+    if (item?.action === "GUEST_UPDATED" && field === "checkoutDueAt") return false;
+    if (
+      item?.action === "GUEST_UPDATED" &&
+      field === "checkOutAt" &&
+      item?.before?.status !== "checked_out" &&
+      item?.after?.status !== "checked_out"
+    ) return false;
+
+    return true;
+  });
+};
+
+const statusLabels = {
+  booked: "Bron qilingan",
+  active: "Faol",
+  completed: "Yakunlangan",
+  cancelled: "Bekor qilingan",
+  available: "Bo'sh",
+  occupied: "Band",
+};
+
+const formatValue = (value, field) => {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Ha" : "Yo'q";
+  if (field === "status" && statusLabels[value]) return statusLabels[value];
+  if (/At$|Date$/.test(field) && dayjs(value).isValid()) {
+    return dayjs(value).format("DD.MM.YYYY HH:mm");
+  }
+  if (Array.isArray(value)) return value.length ? value.map((item) => formatValue(item, "")).join(", ") : "—";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+};
+
+const ChangesDetails = ({ item }) => {
+  const changes = getItemChanges(item);
+  if (!changes.length) return <div className="audit-no-changes">O'zgarish tafsilotlari saqlanmagan.</div>;
+
+  return (
+    <div className="audit-changes">
+      <div className="audit-changes-title">O'zgargan ma'lumotlar</div>
+      <div className="audit-changes-grid audit-changes-head">
+        <span>Maydon</span><span>Eski qiymat</span><span>Yangi qiymat</span>
+      </div>
+      {changes.map(([field, change]) => (
+        <div className="audit-changes-grid" key={field}>
+          <strong>{fieldLabels[field] || field}</strong>
+          <span className="audit-old-value">{formatValue(change?.from, field)}</span>
+          <span className="audit-new-value">{formatValue(change?.to, field)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 function AuditLogsPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -211,6 +329,14 @@ function AuditLogsPage() {
       ),
     },
     {
+      title: "O'zgarish",
+      width: 115,
+      render: (_, item) => {
+        const count = getItemChanges(item).length;
+        return count ? <Tag color="gold">{count} ta maydon</Tag> : <span className="audit-muted">—</span>;
+      },
+    },
+    {
       title: "IP",
       dataIndex: "ip",
       width: 105,
@@ -279,7 +405,13 @@ function AuditLogsPage() {
               columns={columns}
               dataSource={items}
               pagination={false}
-              scroll={{ x: 980 }}
+              expandable={{
+                expandedRowRender: (item) => <ChangesDetails item={item} />,
+                rowExpandable: (item) => getItemChanges(item).length > 0,
+                expandRowByClick: true,
+                columnWidth: 42,
+              }}
+              scroll={{ x: 1100 }}
             />
           </div>
           <div className="audit-pagination">

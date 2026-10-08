@@ -112,6 +112,71 @@
   white-space: nowrap;
 }
 
+.audit-table .ant-table-row-expand-icon-cell {
+  cursor: pointer;
+}
+
+.audit-table .ant-table-expanded-row > td {
+  background: #fffdf8 !important;
+  padding: 12px 18px 14px 58px !important;
+  white-space: normal !important;
+}
+
+.audit-changes {
+  max-width: 920px;
+  overflow: hidden;
+  border: 1px solid #eadfcb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.audit-changes-title {
+  padding: 9px 12px;
+  color: #172033;
+  font-weight: 700;
+  border-bottom: 1px solid #eadfcb;
+}
+
+.audit-changes-grid {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.7fr) minmax(180px, 1fr) minmax(180px, 1fr);
+}
+
+.audit-changes-grid + .audit-changes-grid {
+  border-top: 1px solid #f0e8da;
+}
+
+.audit-changes-grid > * {
+  min-width: 0;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+}
+
+.audit-changes-grid > * + * {
+  border-left: 1px solid #f0e8da;
+}
+
+.audit-changes-head {
+  color: #667085;
+  background: #fffaf1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.audit-old-value {
+  color: #b42318;
+  background: #fff7f5;
+}
+
+.audit-new-value {
+  color: #027a48;
+  background: #f6fef9;
+}
+
+.audit-no-changes {
+  color: #667085;
+}
+
 @media (max-width: 900px) {
   .audit-page {
     gap: 12px;
@@ -119,5 +184,9 @@
 
   .audit-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .audit-table .ant-table-expanded-row > td {
+    padding-left: 12px !important;
   }
 }
