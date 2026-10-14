@@ -821,6 +821,35 @@ function GuestsPage({ tab = "active" }) {
     }
   };
 
+  const onBulkCancelBookings = async () => {
+    if (!selectedGuestIds.length) {
+      toast.info("Kamida 1 ta bronni tanlang");
+      return;
+    }
+
+    const selectedIds = new Set(selectedGuestIds);
+    const bookingIds = guests
+      .filter((guest) => selectedIds.has(guest._id))
+      .flatMap((guest) =>
+        (guest.bookingGroupGuests?.length
+          ? guest.bookingGroupGuests
+          : [guest]
+        ).map((item) => item._id),
+      );
+
+    try {
+      await Promise.all(
+        [...new Set(bookingIds)].map((guestId) =>
+          cancelBookedGuest(guestId).unwrap(),
+        ),
+      );
+      toast.success(`${selectedGuestIds.length} ta bron bekor qilindi`);
+      setSelectedGuestIds([]);
+    } catch (err) {
+      toast.error(err?.data?.message || "Bronlarni bekor qilishda xatolik");
+    }
+  };
+
   const onBulkCheckout = async () => {
     if (!selectedGuestIds.length) {
       toast.info("Kamida 1 ta mehmonni tanlang");
@@ -1111,12 +1140,16 @@ function GuestsPage({ tab = "active" }) {
     isActiveGuestsTab &&
     checkoutSelectableGuests.length > 0 &&
     checkoutSelectableGuests.every((guest) => selectedGuestIds.includes(guest._id));
+  const allVisibleBookingsSelected =
+    isBookedGuestsTab &&
+    guests.length > 0 &&
+    guests.every((guest) => selectedGuestIds.includes(guest._id));
   const tableEmptyColSpan = isHistoryTab
     ? 15
     : isActiveGuestsTab
       ? 14
       : isBookedGuestsTab
-        ? 13
+        ? 14
         : 14;
 
   return (
@@ -1322,11 +1355,50 @@ function GuestsPage({ tab = "active" }) {
                   </div>
               </div>
             ) : null}
+            {isBookedGuestsTab ? (
+              <div className="guests-bulk-actions">
+                <Checkbox
+                  checked={allVisibleBookingsSelected}
+                  indeterminate={
+                    selectedGuestCount > 0 && !allVisibleBookingsSelected
+                  }
+                  onChange={(e) => {
+                    setSelectedGuestIds(
+                      e.target.checked ? guests.map((guest) => guest._id) : [],
+                    );
+                  }}
+                >
+                  Barchasi | 
+                  <span className="guests-bulk-count">
+                    Jami: {pagination.total || 0}
+                  </span>
+                </Checkbox>
+                <Popconfirm
+                  title="Tanlangan bronlarni o'chirish"
+                  description={`${selectedGuestCount} ta bron ro'yxatdan olib tashlanadi`}
+                  okText="O'chirish"
+                  cancelText="Bekor"
+                  okButtonProps={{ danger: true, loading: cancellingBooking }}
+                  onConfirm={onBulkCancelBookings}
+                  disabled={!selectedGuestCount}
+                  overlayClassName="hotel-popconfirm"
+                >
+                  <Button
+                    danger
+                    icon={<FiTrash2 size={16} />}
+                    loading={cancellingBooking}
+                    disabled={!selectedGuestCount}
+                  >
+                    O'chirish ({selectedGuestCount})
+                  </Button>
+                </Popconfirm>
+              </div>
+            ) : null}
             <div className="table-wrap guests-table-wrap">
               <table className="table">
                 <thead>
                   <tr>
-                    {isActiveGuestsTab ? <th></th> : null}
+                    {isActiveGuestsTab || isBookedGuestsTab ? <th></th> : null}
                     <th>F.I.SH</th>
                     <th>Passport</th>
                     {isDebtorsTab ? <th>Mijoz turi</th> : null}
@@ -1352,7 +1424,7 @@ function GuestsPage({ tab = "active" }) {
                       key={guest._id}
                       className={guest.isBookingDue ? "guest-booking-due-row" : ""}
                     >
-                      {isActiveGuestsTab ? (
+                      {isActiveGuestsTab || isBookedGuestsTab ? (
                         <td data-label="Tanlash">
                           <Checkbox
                             checked={selectedGuestIds.includes(guest._id)}
@@ -1364,6 +1436,7 @@ function GuestsPage({ tab = "active" }) {
                               );
                             }}
                             disabled={
+                              isActiveGuestsTab &&
                               guest.status !== "active" &&
                               !(guest.status === "booked" && guest.group)
                             }

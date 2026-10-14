@@ -262,7 +262,7 @@ function GuestCheckinPage() {
     if (organizationSearchTimerRef.current) {
       clearTimeout(organizationSearchTimerRef.current);
     }
-    if (query.length < 2) {
+    if (query.length < 1) {
       latestOrganizationSearchRef.current = "";
       setOrganizationOptions([]);
       return;
