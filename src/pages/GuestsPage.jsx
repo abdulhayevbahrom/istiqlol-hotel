@@ -88,6 +88,12 @@ const getCurrentStayDay = (checkInAt, checkoutTime = "12:00") => {
   );
 };
 
+const formatBirthDate = (value) => {
+  if (!value) return "";
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format("DD.MM.YYYY") : "";
+};
+
 const getStayedDays = (checkInAt, checkOutAt, checkoutTime = "12:00") => {
   if (!checkInAt || !checkOutAt) return 1;
   const [checkoutHour = 12, checkoutMinute = 0] = String(checkoutTime)
@@ -593,6 +599,7 @@ function GuestsPage({ tab = "active" }) {
       firstname: guest.firstname || "",
       lastname: guest.lastname || "",
       passport: guest.passport || "",
+      birthDate: guest.birthDate ? dayjs(guest.birthDate) : null,
       phone: guest.phone || "",
       email: guest.email || "",
       organization: guest.organization || "",
@@ -920,6 +927,9 @@ function GuestsPage({ tab = "active" }) {
         firstname: String(values.firstname || "").trim(),
         lastname: String(values.lastname || "").trim(),
         passport: String(values.passport || "").trim(),
+        ...(values.birthDate
+          ? { birthDate: values.birthDate.format("YYYY-MM-DD") }
+          : {}),
         phone: String(values.phone || "").trim(),
         email: String(values.email || "").trim(),
         organization: String(values.organization || "").trim(),
@@ -1462,7 +1472,14 @@ function GuestsPage({ tab = "active" }) {
                           ) : null}
                         </div>
                       </td>
-                      <td data-label="Passport">{guest.passport}</td>
+                      <td data-label="Passport">
+                        <div className="guest-name-cell">
+                          <strong>{guest.passport || "-"}</strong>
+                          {guest.birthDate ? (
+                            <small>{formatBirthDate(guest.birthDate)}</small>
+                          ) : null}
+                        </div>
+                      </td>
                       {isDebtorsTab ? (
                         <td data-label="Mijoz turi">
                           <span
@@ -2196,6 +2213,14 @@ function GuestsPage({ tab = "active" }) {
               ]}
             >
               <Input maxLength={30} placeholder="Ixtiyoriy" />
+            </Form.Item>
+            <Form.Item name="birthDate" label="Tug'ilgan sana">
+              <DatePicker
+                format="DD.MM.YYYY"
+                placeholder="kk.oo.yyyy"
+                style={{ width: "100%" }}
+                disabledDate={(current) => current && current.isAfter(dayjs(), "day")}
+              />
             </Form.Item>
             <Form.Item
               name="phone"
