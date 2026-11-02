@@ -305,13 +305,14 @@ function GuestCheckinPage() {
       const hasFreeRoom = rooms.some(
         (room) =>
           room.category === option.value &&
-          !["remont", "tozalash"].includes(room.status) &&
+          room.status !== "remont" &&
+          (isBookingMode || room.status !== "tozalash") &&
           Number(room.capacity || 0) - Number(room.activeGuestsCount || 0) > 0,
       );
       availability[option.value] = hasFreeRoom;
     });
     return availability;
-  }, [rooms]);
+  }, [isBookingMode, rooms]);
 
   const roomTypeSegmentOptions = useMemo(
     () =>
@@ -340,7 +341,7 @@ function GuestCheckinPage() {
   const roomOptions = useMemo(() => {
     return rooms
       .filter((room) => room.category === roomType)
-      .filter((room) => !["remont", "tozalash"].includes(room.status))
+      .filter((room) => room.status !== "remont" && (isBookingMode || room.status !== "tozalash"))
       .filter(
         (room) =>
           Number(room.capacity || 0) - Number(room.activeGuestsCount || 0) > 0,
@@ -352,7 +353,7 @@ function GuestCheckinPage() {
         )}/${Number(room.capacity || 0)} [${room.floor}-qavat · ${room.korpus || ""} korpus]`,
         value: room._id,
       }));
-  }, [rooms, roomType]);
+  }, [isBookingMode, rooms, roomType]);
 
   useEffect(() => {
     const pref = location.state?.recheckinGuest;

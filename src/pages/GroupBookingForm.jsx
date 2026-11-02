@@ -62,7 +62,7 @@ function GroupBookingForm({ onModeChange }) {
   const availableRooms = useMemo(
     () =>
       rooms.filter((room) => {
-        if (["remont", "tozalash"].includes(room.status)) return false;
+        if (room.status === "remont") return false;
         if (!bookedForDate) return room.status === "bosh";
         return !occupiedRoomIds.has(String(room._id));
       }),
