@@ -18,6 +18,7 @@ import {
   useCreateEmployeeMutation,
   useDeleteEmployeeMutation,
   useGetEmployeesQuery,
+  useGetRoomsQuery,
   useGetTelegramAccountsQuery,
   useUpdateEmployeeMutation,
 } from "../store/employeeApi";
@@ -159,6 +160,23 @@ function EmployeesPage() {
   });
   const { data: telegramData } = useGetTelegramAccountsQuery(undefined, { pollingInterval: 5000 });
   const telegramAccounts = telegramData?.innerData || [];
+  const { data: roomsData } = useGetRoomsQuery();
+  const rooms = roomsData?.innerData || [];
+  const assignedAreaOptions = useMemo(() => {
+    const areas = new Map();
+    rooms.forEach((room) => {
+      const korpus = String(room.korpus || "").trim().toUpperCase();
+      const floor = Number(room.floor);
+      if (!korpus || !Number.isFinite(floor)) return;
+      const key = `${korpus}:${floor}`;
+      areas.set(key, { value: key, label: `${korpus} blok — ${floor}-qavat` });
+    });
+    return [...areas.values()].sort((left, right) => {
+      const [leftKorpus, leftFloor] = left.value.split(":");
+      const [rightKorpus, rightFloor] = right.value.split(":");
+      return leftKorpus.localeCompare(rightKorpus) || Number(leftFloor) - Number(rightFloor);
+    });
+  }, [rooms]);
   const [createEmployee, { isLoading: isCreating }] =
     useCreateEmployeeMutation();
   const [updateEmployee, { isLoading: isUpdating }] =
@@ -263,10 +281,12 @@ function EmployeesPage() {
       password: "",
       sections: employee.sections || [],
       telegramAccountId: telegramAccounts.find((account) => String(account.employee?._id || account.employee || "") === employee._id)?._id,
-      assignedAreaKeys: (employee.assignedAreas || []).map((area) => `${area.korpus}:${area.floor}`),
+      assignedAreaKeys: (employee.assignedAreas || [])
+        .map((area) => `${area.korpus}:${area.floor}`)
+        .filter((key) => assignedAreaOptions.some((option) => option.value === key)),
     });
     setIsModalOpen(true);
-  }, [form]);
+  }, [assignedAreaOptions, form, telegramAccounts]);
 
   const onDelete = useCallback(async (id) => {
     try {
@@ -461,7 +481,8 @@ function EmployeesPage() {
               <Select
                 mode="multiple"
                 placeholder="Korpus va qavatni tanlang"
-                options={["A", "B"].flatMap((korpus) => Array.from({ length: 15 }, (_, index) => ({ value: `${korpus}:${index + 1}`, label: `${korpus} blok — ${index + 1}-qavat` })))}
+                options={assignedAreaOptions}
+                notFoundContent="Xonalar bo'limida blok va qavat topilmadi"
               />
             </Form.Item>
 
