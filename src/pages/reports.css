@@ -119,8 +119,24 @@
   min-width: 0;
   align-items: stretch;
   display: grid;
-  grid-template-columns: 260px minmax(180px, 1fr) 150px 150px minmax(220px, 1fr);
+  grid-template-columns: 230px minmax(170px, 1fr) 130px 130px 130px minmax(180px, 1fr) auto;
   gap: 10px;
+}
+
+.client-sales-export-button.ant-btn {
+  min-height: 44px;
+  padding-inline: 18px;
+  border-color: #b48b3d;
+  border-radius: 10px;
+  background: var(--hotel-gold);
+  color: var(--hotel-navy);
+  font-weight: 800;
+}
+
+.client-sales-export-button.ant-btn:not(:disabled):hover {
+  border-color: #9a742f;
+  background: #d7b768;
+  color: var(--hotel-navy);
 }
 
 .client-sales-mode-buttons {
@@ -880,6 +896,7 @@
   .client-sales-filters {
     width: 100%;
     min-width: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .client-sales-summary {

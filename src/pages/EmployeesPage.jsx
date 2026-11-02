@@ -18,6 +18,7 @@ import {
   useCreateEmployeeMutation,
   useDeleteEmployeeMutation,
   useGetEmployeesQuery,
+  useGetTelegramAccountsQuery,
   useUpdateEmployeeMutation,
 } from "../store/employeeApi";
 import {
@@ -38,6 +39,8 @@ const initialForm = {
   login: "",
   password: "",
   sections: [],
+  telegramAccountId: undefined,
+  assignedAreaKeys: [],
 };
 
 const SECTION_LABEL_MAP = new Map(
@@ -55,6 +58,7 @@ const EmployeeRow = memo(function EmployeeRow({
   onEdit,
   onDelete,
   canDelete,
+  telegramAccount,
 }) {
   return (
     <tr>
@@ -67,6 +71,9 @@ const EmployeeRow = memo(function EmployeeRow({
         {Number(employee.salary || 0).toLocaleString()} so'm {employee.salaryType === "hourly" ? "/ soat" : "/ oy"}
       </td>
       <td data-label="Login">{employee.login || "-"}</td>
+      <td data-label="Telegram">
+        {telegramAccount?.status === "verified" ? "Tasdiqlangan ✅" : telegramAccount ? "Kod kutilmoqda" : "Ulanmagan"}
+      </td>
       <td data-label="Ruxsatlar">
         {(employee.sections || []).length ? (
           <Popover
@@ -150,6 +157,8 @@ function EmployeesPage() {
       isLoading: queryLoading,
     }),
   });
+  const { data: telegramData } = useGetTelegramAccountsQuery(undefined, { pollingInterval: 5000 });
+  const telegramAccounts = telegramData?.innerData || [];
   const [createEmployee, { isLoading: isCreating }] =
     useCreateEmployeeMutation();
   const [updateEmployee, { isLoading: isUpdating }] =
@@ -196,6 +205,11 @@ function EmployeesPage() {
       salaryType: values.salaryType || "fixed",
       canLogin: Boolean(values.canLogin),
       sections: values.sections || [],
+      telegramAccountId: values.telegramAccountId,
+      assignedAreas: (values.assignedAreaKeys || []).map((key) => {
+        const [korpus, floor] = String(key).split(":");
+        return { korpus, floor: Number(floor) };
+      }),
     };
 
     if (payload.canLogin) {
@@ -248,6 +262,8 @@ function EmployeesPage() {
       login: employee.login || "",
       password: "",
       sections: employee.sections || [],
+      telegramAccountId: telegramAccounts.find((account) => String(account.employee?._id || account.employee || "") === employee._id)?._id,
+      assignedAreaKeys: (employee.assignedAreas || []).map((area) => `${area.korpus}:${area.floor}`),
     });
     setIsModalOpen(true);
   }, [form]);
@@ -281,6 +297,18 @@ function EmployeesPage() {
             </button>
           </div>
         </div>
+        {telegramAccounts.some((account) => account.status === "pending" && !account.employee) ? (
+          <div className="telegram-pending-panel">
+            <strong>Telegram tasdiqlash so'rovlari</strong>
+            {telegramAccounts.filter((account) => account.status === "pending" && !account.employee).map((account) => (
+              <span key={account._id}>
+                {account.firstname || ""} {account.lastname || ""}
+                {account.username ? ` (@${account.username})` : ""} — kod: <b>{account.verificationCode}</b>
+              </span>
+            ))}
+            <small>Kerakli xodimni tahrirlab, Telegram so'rovini unga biriktiring.</small>
+          </div>
+        ) : null}
         {isLoading ? (
           <PageLoader text="Hodimlar ro'yxati tayyorlanmoqda" />
         ) : (
@@ -293,6 +321,7 @@ function EmployeesPage() {
                   <th>Rol</th>
                   <th>Oylik</th>
                   <th>Login</th>
+                  <th>Telegram</th>
                   <th>Ruxsatlar</th>
                   <th>Amal</th>
                 </tr>
@@ -306,11 +335,12 @@ function EmployeesPage() {
                     onEdit={openEditModal}
                     onDelete={onDelete}
                     canDelete={currentRole === "owner"}
+                    telegramAccount={telegramAccounts.find((account) => String(account.employee?._id || account.employee || "") === employee._id)}
                   />
                 ))}
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="table-empty">
+                    <td colSpan={8} className="table-empty">
                       Hech narsa topilmadi
                     </td>
                   </tr>
@@ -414,6 +444,26 @@ function EmployeesPage() {
                 <Input placeholder="Masalan: qorovul, resepsionist" maxLength={40} />
               </Form.Item>
             ) : null}
+
+            <Form.Item name="telegramAccountId" label="Telegram tasdiqlash so'rovi" extra="Xodim botga /start bosgach, shu yerda uning kodi ko'rinadi. Kodni xodimga ayting.">
+              <Select
+                allowClear
+                placeholder="Telegram foydalanuvchini tanlang"
+                options={telegramAccounts
+                  .filter((account) => !account.employee || String(account.employee?._id || account.employee) === editingId)
+                  .map((account) => ({
+                    value: account._id,
+                    label: `${account.firstname || ""} ${account.lastname || ""}${account.username ? ` (@${account.username})` : ""} — kod: ${account.verificationCode || "tasdiqlangan"}`,
+                  }))}
+              />
+            </Form.Item>
+            <Form.Item name="assignedAreaKeys" label="Biriktirilgan korpus va qavatlar" extra="Farrosh uchun bir yoki bir nechta hududni tanlang">
+              <Select
+                mode="multiple"
+                placeholder="Korpus va qavatni tanlang"
+                options={["A", "B"].flatMap((korpus) => Array.from({ length: 15 }, (_, index) => ({ value: `${korpus}:${index + 1}`, label: `${korpus} blok — ${index + 1}-qavat` })))}
+              />
+            </Form.Item>
 
             {/* <Form.Item
               name="salary"

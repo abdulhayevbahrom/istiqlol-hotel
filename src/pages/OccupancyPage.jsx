@@ -420,7 +420,7 @@ function OccupancyPage() {
             {visibleRooms.map((room) => {
               const entries = entriesByRoom.get(room._id) || [];
               const lanes = Math.max(1, ...entries.map((entry) => entry.lane));
-              const isRepair = room.status === "remont";
+              const isRepair = ["remont", "tozalash"].includes(room.status);
               return (
                 <div className="occupancy-room-row" key={room._id}>
                   <div className="occupancy-room-label">
@@ -435,7 +435,7 @@ function OccupancyPage() {
                     style={{ "--lanes": lanes }}
                   >
                     {days.map((day) => <div className={`occupancy-cell ${dateKey(day) === dateKey(new Date()) ? "is-today" : ""}`} key={dateKey(day)} />)}
-                    {isRepair ? <div className="repair-label">Remont</div> : null}
+                    {isRepair ? <div className="repair-label">{room.status === "tozalash" ? "Tozalash" : "Remont"}</div> : null}
                     {entries.map((entry) => {
                       const name = `${entry.firstname || ""} ${entry.lastname || ""}`.trim() || "Mehmon";
                       const left = entry.start * CELL_WIDTH;

@@ -13,12 +13,14 @@ import {
   Upload,
 } from "antd";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
 import {
   useCreateRoomMutation,
   useDeleteRoomMutation,
   useGetRoomsQuery,
   useGetSettingsQuery,
   useUpdateRoomMutation,
+  useCompleteRoomTaskMutation,
 } from "../store/employeeApi";
 import {
   blockNonIntegerKeys,
@@ -26,6 +28,7 @@ import {
 } from "../utils/numberFormat";
 import PageLoader from "../components/PageLoader";
 import API_CONFIG from "../config/apiConfig";
+import { acquireSocketConnection, releaseSocketConnection } from "../config/socketConfig";
 
 const DEFAULT_ROOM_CATEGORIES = [
   "standart",
@@ -45,7 +48,9 @@ const roomKorpusOptions = [
 const roomStatusOptions = [
   { label: "Bo'sh", value: "bosh" },
   { label: "Band", value: "band" },
+  { label: "Tozalash kerak", value: "tozalash" },
   { label: "Remont", value: "remont" },
+  { label: "Tozalash", value: "tozalash" },
 ];
 
 const roomConditionOptions = [
@@ -91,12 +96,15 @@ const initialForm = {
 const formatMoney = (value) => Number(value || 0).toLocaleString();
 
 function RoomsPage() {
+  const token = useSelector((state) => state.auth.token);
   const [form] = Form.useForm();
-  const { data, isLoading } = useGetRoomsQuery();
+  const { data, isLoading, refetch: refetchRooms } = useGetRoomsQuery();
   const { data: settingsData } = useGetSettingsQuery();
   const [createRoom, { isLoading: isCreating }] = useCreateRoomMutation();
   const [updateRoom, { isLoading: isUpdating }] = useUpdateRoomMutation();
   const [deleteRoom, { isLoading: isDeleting }] = useDeleteRoomMutation();
+  const [completeRoomTask, { isLoading: isCompleting }] = useCompleteRoomTaskMutation();
+  const selectedCondition = Form.useWatch("condition", form);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState("");
   const [query, setQuery] = useState("");
@@ -119,6 +127,20 @@ function RoomsPage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    const socket = acquireSocketConnection(token);
+    if (!socket) return undefined;
+    const refresh = () => refetchRooms();
+    socket.on("room_updated", refresh);
+    socket.on("guest_updated", refresh);
+    return () => {
+      socket.off("room_updated", refresh);
+      socket.off("guest_updated", refresh);
+      releaseSocketConnection(socket);
+    };
+  }, [token, refetchRooms]);
 
   const rooms = useMemo(() => data?.innerData || [], [data]);
   const roomCategoryOptions = useMemo(() => {
@@ -186,7 +208,8 @@ function RoomsPage() {
       floor: room.floor,
       capacity: room.capacity || 1,
       category: room.category,
-      condition: room.status === "remont" ? "remont" : "aktiv",
+      condition: room.status === "remont" ? "remont" : room.status === "tozalash" ? "tozalash" : "aktiv",
+      repairReason: room.task?.reason || "",
       prices: room.prices || { oddiy: 0, chetEllik: 0 },
     });
     setIsModalOpen(true);
@@ -221,7 +244,11 @@ function RoomsPage() {
         chetEllik: Number(values.prices?.chetEllik || 0),
       }),
     );
-    if (editingId) payload.append("status", values.condition === "remont" ? "remont" : "bosh");
+    if (editingId) {
+      const nextStatus = values.condition === "remont" ? "remont" : values.condition === "tozalash" ? "tozalash" : "bosh";
+      payload.append("status", nextStatus);
+      if (nextStatus === "remont") payload.append("repairReason", String(values.repairReason || "").trim());
+    }
     imageFiles.forEach((file) => payload.append("images", file.originFileObj || file));
 
     try {
@@ -264,6 +291,15 @@ function RoomsPage() {
     } catch (err) {
       const message = err?.data?.message || "O'chirishda xatolik";
       toast.error(message);
+    }
+  };
+
+  const onCompleteTask = async (id) => {
+    try {
+      const result = await completeRoomTask(id).unwrap();
+      toast.success(result?.message || "Xona aktiv holatga o'tdi");
+    } catch (err) {
+      toast.error(err?.data?.message || "Topshiriqni yopishda xatolik");
     }
   };
 
@@ -407,8 +443,14 @@ function RoomsPage() {
                     <strong>Chet ellik:</strong>{" "}
                     {formatMoney(room.prices?.chetEllik)}
                   </div>
+                  {room.task?.reason ? <div><strong>Sabab:</strong> {room.task.reason}</div> : null}
                 </div>
                 <div className="table-action-wrap">
+                  {["tozalash", "remont"].includes(room.status) ? (
+                    <Popconfirm title={room.status === "remont" ? "Ta'mirlash tugadimi?" : "Xona tozalab bo'lindimi?"} onConfirm={() => onCompleteTask(room._id)} okText="Ha" cancelText="Yo'q">
+                      <Button size="small" loading={isCompleting}>{room.status === "remont" ? "Tuzatildi" : "Tayyor"}</Button>
+                    </Popconfirm>
+                  ) : null}
                   <button
                     type="button"
                     className="icon-btn"
@@ -672,6 +714,12 @@ function RoomsPage() {
                   block
                   className="room-condition-segmented"
                 />
+              </Form.Item>
+            ) : null}
+
+            {editingId && selectedCondition === "remont" ? (
+              <Form.Item name="repairReason" label="Ta'mirlash sababi" rules={[{ required: true, whitespace: true, message: "Sababini kiriting" }]}>
+                <Input.TextArea rows={3} maxLength={500} showCount placeholder="Xonada nima buzilganini yozing" />
               </Form.Item>
             ) : null}
 

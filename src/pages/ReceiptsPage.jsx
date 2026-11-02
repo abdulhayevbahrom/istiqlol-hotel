@@ -213,7 +213,7 @@ function ReceiptsPage() {
     useUpdateReceiptMutation();
   const [deleteReceipt] = useDeleteReceiptMutation();
   const { data: receiptsData, isFetching: receiptsLoading } =
-    useGetReceiptsQuery({ query: historyQuery, page: historyPage, limit: 10 });
+    useGetReceiptsQuery({ query: historyQuery, page: historyPage, limit: 50 });
 
   const hotelSettings = settingsData?.innerData || {};
   const guests = useMemo(() => {
@@ -751,7 +751,7 @@ function ReceiptsPage() {
                   dataSource={receiptsData?.innerData?.items || []}
                   pagination={{
                     current: receiptsData?.innerData?.page || historyPage,
-                    pageSize: receiptsData?.innerData?.limit || 10,
+                    pageSize: receiptsData?.innerData?.limit || 50,
                     total: receiptsData?.innerData?.total || 0,
                     onChange: setHistoryPage,
                     showSizeChanger: false,
@@ -1026,6 +1026,7 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
       <Table
         className="receipt-print-table"
         size="small"
+        tableLayout="fixed"
         dataSource={services.map((service, index) => ({
           ...service,
           key: index,
@@ -1034,17 +1035,24 @@ function ReceiptDocument({ refEl, receipt, hotelSettings }) {
         bordered
         columns={[
           { title: "Xizmat nomi", dataIndex: "name" },
-          { title: "Miqdori", dataIndex: "quantity", width: 110 },
+          {
+            title: "Miqdori",
+            dataIndex: "quantity",
+            width: 64,
+            className: "receipt-number-cell",
+          },
           {
             title: "Narxi",
             dataIndex: "price",
-            width: 150,
+            width: 120,
+            className: "receipt-number-cell",
             render: formatMoney,
           },
           {
             title: "Summasi",
             dataIndex: "total",
-            width: 160,
+            width: 120,
+            className: "receipt-number-cell",
             render: formatMoney,
           },
         ]}

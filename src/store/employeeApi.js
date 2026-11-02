@@ -19,13 +19,17 @@ export const employeeApi = apiSlice.injectEndpoints({
       query: () => "/employees",
       providesTags: ["Employee"],
     }),
+    getTelegramAccounts: builder.query({
+      query: () => "/telegram/accounts",
+      providesTags: ["TelegramAccount"],
+    }),
     createEmployee: builder.mutation({
       query: (body) => ({
         url: "/employee",
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Employee"],
+      invalidatesTags: ["Employee", "TelegramAccount"],
     }),
     updateEmployee: builder.mutation({
       query: ({ id, ...body }) => ({
@@ -33,7 +37,7 @@ export const employeeApi = apiSlice.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["Employee"],
+      invalidatesTags: ["Employee", "TelegramAccount"],
     }),
     deleteEmployee: builder.mutation({
       query: (id) => ({
@@ -67,6 +71,10 @@ export const employeeApi = apiSlice.injectEndpoints({
         url: `/room/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["Room"],
+    }),
+    completeRoomTask: builder.mutation({
+      query: (id) => ({ url: `/room/${id}/complete-task`, method: "POST" }),
       invalidatesTags: ["Room"],
     }),
     getGuests: builder.query({
@@ -412,6 +420,7 @@ export const employeeApi = apiSlice.injectEndpoints({
         type = "",
         query = "",
         clientType = "",
+        floor = "",
         page = 1,
         limit = 30,
       } = {}) => {
@@ -427,6 +436,7 @@ export const employeeApi = apiSlice.injectEndpoints({
         if (type) search.set("type", String(type));
         if (query) search.set("query", String(query));
         if (clientType) search.set("clientType", String(clientType));
+        if (floor) search.set("floor", String(floor));
         return `/reports-client-sales?${search.toString()}`;
       },
     }),
@@ -506,6 +516,7 @@ export const {
   useEmployeeLoginMutation,
   useEmployeeLogoutMutation,
   useGetEmployeesQuery,
+  useGetTelegramAccountsQuery,
   useCreateEmployeeMutation,
   useUpdateEmployeeMutation,
   useDeleteEmployeeMutation,
@@ -513,6 +524,7 @@ export const {
   useCreateRoomMutation,
   useUpdateRoomMutation,
   useDeleteRoomMutation,
+  useCompleteRoomTaskMutation,
   useGetGuestsQuery,
   useLazyGetGuestsQuery,
   useLazyGetGuestOrganizationsQuery,
@@ -559,6 +571,7 @@ export const {
   useGetReportsSummaryQuery,
   useGetDailyReportQuery,
   useGetClientSalesReportQuery,
+  useLazyGetClientSalesReportQuery,
   useCreateExpenseMutation,
   useUpdateExpenseMutation,
   useDeleteExpenseMutation,

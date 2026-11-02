@@ -305,7 +305,7 @@ function GuestCheckinPage() {
       const hasFreeRoom = rooms.some(
         (room) =>
           room.category === option.value &&
-          room.status !== "remont" &&
+          !["remont", "tozalash"].includes(room.status) &&
           Number(room.capacity || 0) - Number(room.activeGuestsCount || 0) > 0,
       );
       availability[option.value] = hasFreeRoom;
@@ -340,7 +340,7 @@ function GuestCheckinPage() {
   const roomOptions = useMemo(() => {
     return rooms
       .filter((room) => room.category === roomType)
-      .filter((room) => room.status !== "remont")
+      .filter((room) => !["remont", "tozalash"].includes(room.status))
       .filter(
         (room) =>
           Number(room.capacity || 0) - Number(room.activeGuestsCount || 0) > 0,
@@ -362,7 +362,7 @@ function GuestCheckinPage() {
     const preferredRoom = rooms.find((room) => room._id === pref.roomId);
     const preferredRoomIsFree =
       preferredRoom &&
-      preferredRoom.status !== "remont" &&
+      !["remont", "tozalash"].includes(preferredRoom.status) &&
       Number(preferredRoom.capacity || 0) -
         Number(preferredRoom.activeGuestsCount || 0) >
         0;
