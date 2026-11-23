@@ -91,6 +91,7 @@ const initialForm = {
   capacity: 1,
   category: "standart",
   prices: { oddiy: 0, chetEllik: 0 },
+  websitePrices: { oddiy: null, chetEllik: null },
 };
 
 const formatMoney = (value) => Number(value || 0).toLocaleString();
@@ -114,7 +115,7 @@ function RoomsPage() {
   const [statusFilter, setStatusFilter] = useState(undefined);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isMobileFilters, setIsMobileFilters] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 900 : false,
+    typeof window !== "undefined" ? window.innerWidth <= 900 : false,
   );
   const [error, setError] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
@@ -122,7 +123,7 @@ function RoomsPage() {
   const [galleryRoom, setGalleryRoom] = useState(null);
 
   useEffect(() => {
-    const handleResize = () => setIsMobileFilters(window.innerWidth < 900);
+    const handleResize = () => setIsMobileFilters(window.innerWidth <= 900);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -211,6 +212,10 @@ function RoomsPage() {
       condition: room.status === "remont" ? "remont" : room.status === "tozalash" ? "tozalash" : "aktiv",
       repairReason: room.task?.reason || "",
       prices: room.prices || { oddiy: 0, chetEllik: 0 },
+      websitePrices: {
+        oddiy: room.websitePrices?.oddiy ?? null,
+        chetEllik: room.websitePrices?.chetEllik ?? null,
+      },
     });
     setIsModalOpen(true);
   };
@@ -244,6 +249,10 @@ function RoomsPage() {
         chetEllik: Number(values.prices?.chetEllik || 0),
       }),
     );
+    payload.append("websitePrices", JSON.stringify({
+      oddiy: values.websitePrices?.oddiy ?? null,
+      chetEllik: values.websitePrices?.chetEllik ?? null,
+    }));
     if (editingId) {
       const nextStatus = values.condition === "remont" ? "remont" : values.condition === "tozalash" ? "tozalash" : "bosh";
       payload.append("status", nextStatus);
@@ -442,6 +451,14 @@ function RoomsPage() {
                   <div>
                     <strong>Chet ellik:</strong>{" "}
                     {formatMoney(room.prices?.chetEllik)}
+                  </div>
+                  <div>
+                    <strong>Sayt — rezident:</strong>{" "}
+                    {formatMoney(room.websitePrices?.oddiy ?? room.prices?.oddiy)}
+                  </div>
+                  <div>
+                    <strong>Sayt — xorijiy:</strong>{" "}
+                    {formatMoney(room.websitePrices?.chetEllik ?? room.prices?.chetEllik)}
                   </div>
                   {room.task?.reason ? <div><strong>Sabab:</strong> {room.task.reason}</div> : null}
                 </div>
@@ -702,6 +719,33 @@ function RoomsPage() {
                 onPaste={preventInvalidAmountPaste}
               />
             </Form.Item>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <h4 style={{ margin: "0 0 8px" }}>Website uchun xona narxlari</h4>
+              <p style={{ margin: 0 }}>Bir kecha uchun, so'mda. Bo'sh qoldirilsa dastur narxi ishlatiladi. Bu tariflar saytdan qilingan bronlarga qo'llanadi.</p>
+            </div>
+            {[
+              { key: "oddiy", label: "Sayt narxi — O'zbekiston rezidentlari" },
+              { key: "chetEllik", label: "Sayt narxi — xorijiy mehmonlar" },
+            ].map(({ key, label }) => (
+              <Form.Item
+                key={key}
+                name={["websitePrices", key]}
+                label={label}
+                rules={[{ type: "number", min: 0, message: "Narx manfiy bo'lishi mumkin emas" }]}
+              >
+                <InputNumber
+                  min={0}
+                  precision={0}
+                  style={{ width: "100%" }}
+                  placeholder="Dastur narxi"
+                  formatter={(value) => String(value ?? "").replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  parser={(value) => String(value || "").replace(/[^\d]/g, "")}
+                  onKeyDown={blockNonIntegerKeys}
+                  onPaste={preventInvalidAmountPaste}
+                />
+              </Form.Item>
+            ))}
 
             {editingId ? (
               <Form.Item

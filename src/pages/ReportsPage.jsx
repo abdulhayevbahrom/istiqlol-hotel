@@ -707,20 +707,11 @@ function DailyReportContent({
 
             <section className="daily-report-section daily-report-summary-grid">
               <div className="daily-report-rows">
-                <div className="daily-report-rows-primary">
-                  <div
-                    className="daily-report-prepayment-card"
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: "12px",
-                      minHeight: "72px",
-                    }}
-                  >
-                    <span>Predoplata</span>
-                    <b style={{ fontSize: "18px", lineHeight: 1.1 }}>
-                      {formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))} so'm
-                    </b>
-                  </div>
+                <div className="daily-report-prepayment-card">
+                  <span>Oldindan to‘lov</span>
+                  <b>
+                    {formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))} so'm
+                  </b>
                 </div>
                 <div>
                   <span>Jami aktiv xonalar</span>
@@ -836,6 +827,7 @@ function ReportsPage() {
   const sections = reportData?.sections || {};
   const dailyReport = dailyResponse?.innerData;
   const dailyGuestRows = dailyReport?.guests || [];
+  const dailyOrganizationRows = dailyReport?.organizationGuests || [];
   const dailyExpenses = dailyReport?.expenses?.items || [];
   const rooms = useMemo(() => roomsData?.innerData || [], [roomsData]);
   const accountingFloorOptions = useMemo(() => {
@@ -1145,74 +1137,78 @@ function ReportsPage() {
                           </em>
                         </header>
 
-                        <section className="daily-report-section">
-                          <div className="daily-report-section-head">
-                            <h2>Aktiv mijozlar ro'yxati</h2>
-                            <span>{dailyGuestRows.length} ta xona</span>
-                          </div>
-                          <table className="daily-report-table daily-report-guest-table">
-                            <colgroup>
-                              <col className="report-col-prepayment" />
-                              <col className="report-col-debt" />
-                              <col className="report-col-room" />
-                              <col className="report-col-count" />
-                              <col className="report-col-daily" />
-                              <col className="report-col-cash" />
-                              <col className="report-col-card" />
-                              <col className="report-col-transfer" />
-                              <col className="report-col-total" />
-                              <col className="report-col-name" />
-                              <col className="report-col-name" />
-                              <col className="report-col-prepayment-end" />
-                              <col className="report-col-debt-end" />
-                            </colgroup>
-                            <thead>
-                              <tr>
-                                <th rowSpan={2}>Предоплата</th>
-                                <th rowSpan={2}>Задолженность</th>
-                                <th rowSpan={2}>№ комнаты</th>
-                                <th rowSpan={2}>Кол-во чел.</th>
-                                <th rowSpan={2}>Оплата за сутки</th>
-                                <th colSpan={3}>Оплата наличными</th>
-                                <th rowSpan={2}>Всего</th>
-                                <th rowSpan={2}>ФИО</th>
-                                <th rowSpan={2}>Tashkilot</th>
-                                <th rowSpan={2}>Предоплата</th>
-                                <th rowSpan={2}>Задолженность</th>
-                              </tr>
-                              <tr>
-                                <th>Наличия</th>
-                                <th>Пластиковая карта</th>
-                                <th>Банковский перевод</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {dailyGuestRows.map((guest, index) => (
-                                <tr
-                                  key={`${guest.roomNumber}-${guest.fullName}-${index}`}
-                                >
-                                  <td>{formatMoney(guest.openingPrepayment)}</td>
-                                  <td>{formatMoney(guest.openingDebt)}</td>
-                                  <td>{formatRoomLabel(guest)}</td>
-                                  <td>{guest.guestCount}</td>
-                                  <td>{formatMoney(guest.dailyRate)}</td>
-                                  <td>{formatMoney(guest.cash)}</td>
-                                  <td>{formatMoney(guest.card)}</td>
-                                  <td>{formatMoney(guest.transfer)}</td>
-                                  <td>{formatMoney((guest.cash || 0) + (guest.card || 0) + (guest.transfer || 0))}</td>
-                                  <td>{guest.fullName}</td>
-                                  <td>{guest.organization || "-"}</td>
-                                  <td>{formatMoney(guest.closingPrepayment)}</td>
-                                  <td>{formatMoney(guest.closingDebt)}</td>
+                        {[
+                          { title: "Aktiv mijozlar ro'yxati", rows: dailyGuestRows, emptyMessage: "Aktiv mijozlar topilmadi" },
+                          { title: "Tashkilot mijozlari ro'yxati", rows: dailyOrganizationRows, emptyMessage: "Tashkilot mijozlari topilmadi" },
+                        ].map(({ title, rows, emptyMessage }) => (
+                          <section key={title} className="daily-report-section">
+                            <div className="daily-report-section-head">
+                              <h2>{title}</h2>
+                              <span>{new Set(rows.map((row) => row.roomId || formatRoomLabel(row))).size} ta xona</span>
+                            </div>
+                            <table className="daily-report-table daily-report-guest-table">
+                              <colgroup>
+                                <col className="report-col-prepayment" />
+                                <col className="report-col-debt" />
+                                <col className="report-col-room" />
+                                <col className="report-col-count" />
+                                <col className="report-col-daily" />
+                                <col className="report-col-cash" />
+                                <col className="report-col-card" />
+                                <col className="report-col-transfer" />
+                                <col className="report-col-total" />
+                                <col className="report-col-name" />
+                                <col className="report-col-name" />
+                                <col className="report-col-prepayment-end" />
+                                <col className="report-col-debt-end" />
+                              </colgroup>
+                              <thead>
+                                <tr>
+                                  <th rowSpan={2}>Предоплата</th>
+                                  <th rowSpan={2}>Задолженность</th>
+                                  <th rowSpan={2}>№ комнаты</th>
+                                  <th rowSpan={2}>Кол-во чел.</th>
+                                  <th rowSpan={2}>Оплата за сутки</th>
+                                  <th colSpan={3}>Оплата наличными</th>
+                                  <th rowSpan={2}>Всего</th>
+                                  <th rowSpan={2}>ФИО</th>
+                                  <th rowSpan={2}>Tashkilot</th>
+                                  <th rowSpan={2}>Предоплата</th>
+                                  <th rowSpan={2}>Задолженность</th>
                                 </tr>
+                                <tr>
+                                  <th>Наличия</th>
+                                  <th>Пластиковая карта</th>
+                                  <th>Банковский перевод</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rows.map((guest, index) => (
+                                  <tr
+                                    key={`${guest.roomNumber}-${guest.fullName}-${index}`}
+                                  >
+                                    <td>{formatMoney(guest.openingPrepayment)}</td>
+                                    <td>{formatMoney(guest.openingDebt)}</td>
+                                    <td>{formatRoomLabel(guest)}</td>
+                                    <td>{guest.guestCount}</td>
+                                    <td>{formatMoney(guest.dailyRate)}</td>
+                                    <td>{formatMoney(guest.cash)}</td>
+                                    <td>{formatMoney(guest.card)}</td>
+                                    <td>{formatMoney(guest.transfer)}</td>
+                                    <td>{formatMoney((guest.cash || 0) + (guest.card || 0) + (guest.transfer || 0))}</td>
+                                    <td>{guest.fullName}</td>
+                                    <td>{guest.organization || "-"}</td>
+                                    <td>{formatMoney(guest.closingPrepayment)}</td>
+                                    <td>{formatMoney(guest.closingDebt)}</td>
+                                  </tr>
                               ))}
                               {!dailyGuestRows.length ? (
                                 <tr>
                                   <td
-                                    colSpan={12}
+                                    colSpan={13}
                                     style={{ textAlign: "center" }}
                                   >
-                                    Aktiv mijozlar topilmadi
+                                    {emptyMessage}
                                   </td>
                                 </tr>
                               ) : null}
@@ -1236,6 +1232,7 @@ function ReportsPage() {
                             </tbody>
                           </table>
                         </section>
+                        ))}
 
                         <section className="daily-report-section">
                           <div className="daily-report-section-head">
@@ -1302,27 +1299,11 @@ function ReportsPage() {
 
                         <section className="daily-report-section daily-report-summary-grid">
                           <div className="daily-report-rows">
-                            <div className="daily-report-rows-primary">
-                              <div
-                                className="daily-report-prepayment-card"
-                                style={{
-                                  padding: "10px 12px",
-                                  borderRadius: "12px",
-                                  minHeight: "72px",
-                                }}
-                              >
-                                <span>Predoplata</span>
-                                <b style={{ fontSize: "18px", lineHeight: 1.1 }}>
-                                  {formatMoney(
-                                    dailyGuestRows.reduce(
-                                      (sum, row) =>
-                                        sum + Number(row.closingPrepayment || 0),
-                                      0,
-                                    ),
-                                  )}{" "}
-                                  so'm
-                                </b>
-                              </div>
+                            <div className="daily-report-prepayment-card">
+                              <span>Oldindan to‘lov</span>
+                              <b>
+                                {formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))} so'm
+                              </b>
                             </div>
                             <div>
                               <span>Jami aktiv xonalar</span>

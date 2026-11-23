@@ -1,0 +1,195 @@
+/* Use the space beside the navigation, including on smaller laptops. */
+@media screen {
+  .admin-shell { grid-template-columns: 260px minmax(0, 1fr); }
+  .admin-main,
+  .admin-content,
+  .admin-content > *,
+  .page-card,
+  .table-wrap,
+  .ant-tabs-content-holder,
+  .ant-tabs-content,
+  .ant-tabs-tabpane {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .admin-content { container: workspace / inline-size; }
+  .admin-header h1 { min-width: 0; overflow-wrap: anywhere; }
+  .header-right { flex-shrink: 0; }
+  .table-toolbar,
+  .toolbar-actions,
+  .daily-report-toolbar,
+  .reports-hero-actions,
+  .occupancy-toolbar,
+  .dashboard-topbar { flex-wrap: wrap; }
+  .table-toolbar > *,
+  .toolbar-actions > * { max-width: 100%; }
+  .toolbar-actions { min-width: 0; }
+  .search-input { max-width: 100%; }
+  .table-wrap,
+  .occupancy-scroll,
+  .receipt-preview-shell { max-width: 100%; min-width: 0; }
+  .reports-page,
+  .reports-shell,
+  .reports-summary-top,
+  .client-sales-tab,
+  .settings-panel,
+  .daily-report-tab { grid-template-columns: minmax(0, 1fr); }
+  .reports-shell > *,
+  .reports-summary-top > *,
+  .client-sales-tab > *,
+  .settings-panel > *,
+  .daily-report-tab > *,
+  .daily-report-tab,
+  .daily-report-preview-wrap { min-width: 0; max-width: 100%; }
+  .daily-report-preview-wrap { overflow-x: auto; }
+  /* Keep the 13 accounting columns legible and scroll only the report. */
+  .daily-report-sheet { min-width: 1100px; }
+  .client-sales-table-wrap { min-width: 0; overflow-x: auto; }
+  .occupancy-grid {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .occupancy-header,
+  .occupancy-grid > .occupancy-scroll {
+    width: max-content;
+    min-width: 100%;
+  }
+}
+
+@media screen and (min-width: 901px) and (max-width: 1366px) {
+  .admin-shell { grid-template-columns: 220px minmax(0, 1fr); }
+  .admin-content { padding: 14px; }
+  .admin-header { padding-inline: 16px; }
+  .page-card { padding: 16px; }
+  .sidebar { padding-inline: 10px; }
+  .brand { padding-inline: 10px; font-size: 20px; }
+  .side-link { padding: 9px 10px; }
+}
+
+@media screen {
+  @container workspace (max-width: 1180px) {
+    .receipts-page { grid-template-columns: minmax(0, 1fr); }
+    .client-sales-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .client-sales-toolbar { flex-direction: column; }
+    .audit-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .audit-toolbar > * { min-width: 0; max-width: 100%; }
+  }
+
+  @container workspace (max-width: 980px) {
+    .dashboard-main-grid,
+    .dashboard-bottom-grid,
+    .reports-groups { grid-template-columns: minmax(0, 1fr); }
+    .dashboard-kpi-grid,
+    .reports-highlights,
+    .client-sales-summary,
+    .expense-summary-grid,
+    .payroll-summary-grid,
+    .checkin-grid-top,
+    .checkin-grid-user { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .checkin-room-extra-second { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .checkin-vip-item .ant-checkbox-wrapper { white-space: normal; }
+    .table-toolbar { align-items: flex-start; }
+    .table-toolbar > .toolbar-actions { flex: 1 1 100%; flex-wrap: wrap; }
+    .guests-page .guests-filter-grid { flex-wrap: wrap; }
+    .guests-filter-grid > * { flex-basis: 160px; }
+    .guests-filter-grid > .search-filter-group { flex-basis: 240px; }
+    .daily-report-toolbar { gap: 8px; }
+    .daily-report-toolbar small { flex-basis: 100%; margin-left: 0; }
+    .settings-layout-grid { grid-template-columns: minmax(0, 1fr); }
+    .receipt-form-grid,
+    .receipt-total-grid,
+    .receipt-service-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .receipt-service-header { display: none; }
+  }
+
+  @container workspace (max-width: 600px) {
+    .audit-toolbar,
+    .client-sales-filters,
+    .checkin-grid-top,
+    .checkin-grid-user,
+    .checkin-room-extra-second,
+    .payroll-summary-grid { grid-template-columns: minmax(0, 1fr); }
+    .daily-report-hotel-select { min-width: 0; width: 100%; }
+    .occupancy-toolbar { align-items: flex-start; }
+    .occupancy-actions { justify-content: flex-start; }
+  }
+}
+
+/* Keep expense filters aligned instead of wrapping inside a narrow header. */
+@media screen {
+  .expenses-page .table-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .expenses-page .toolbar-actions {
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) 140px 140px minmax(280px, 320px) max-content;
+    width: 100%;
+    align-items: center;
+  }
+  .expenses-page .toolbar-actions > * { min-width: 0; width: 100%; }
+  .expenses-page .toolbar-actions > .expense-bulk-delete {
+    grid-column: 1 / -1;
+    width: auto;
+    justify-self: end;
+  }
+}
+
+@media screen and (min-width: 901px) {
+  @container workspace (max-width: 1180px) {
+    .expenses-page .toolbar-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .expenses-page .search-filter-group,
+    .expenses-page .toolbar-actions > .ant-picker { grid-column: span 2; }
+    .expenses-page .toolbar-actions > .hotel-primary-btn {
+      grid-column: span 2;
+      width: auto;
+      justify-self: end;
+    }
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .expenses-page .toolbar-actions { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+@media screen and (max-width: 480px) {
+  .expenses-page .toolbar-actions { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Give room filters their own row so the title cannot squeeze the controls. */
+@media screen {
+  .rooms-page .table-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .rooms-page .toolbar-actions {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) repeat(4, 140px) auto;
+    width: 100%;
+    align-items: center;
+  }
+  .rooms-page .toolbar-actions > * { min-width: 0; width: 100%; }
+  .rooms-page .search-input { padding-inline: 10px; }
+}
+
+@media screen and (min-width: 901px) {
+  @container workspace (max-width: 1180px) {
+    .rooms-page .toolbar-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .rooms-page .search-filter-group { grid-column: 1 / 4; }
+    .rooms-page .toolbar-actions > .filter-select { grid-row: 2; }
+    .rooms-page .toolbar-actions > .primary-btn { grid-column: 4; grid-row: 1; }
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .rooms-page .toolbar-actions { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+@media screen and (max-width: 480px) {
+  .rooms-page .toolbar-actions { grid-template-columns: minmax(0, 1fr); }
+  .rooms-page .toolbar-actions > .primary-btn { width: auto; justify-self: end; }
+}

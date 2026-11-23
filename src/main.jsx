@@ -8,6 +8,7 @@ import { store } from "./store";
 import "antd/dist/reset.css";
 import "react-toastify/dist/ReactToastify.css";
 import "./index.css";
+import "./responsive.css";
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {

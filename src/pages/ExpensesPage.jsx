@@ -64,13 +64,13 @@ function ExpensesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isMobileFilters, setIsMobileFilters] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 900 : false,
+    typeof window !== "undefined" ? window.innerWidth <= 900 : false,
   );
   const [editingExpense, setEditingExpense] = useState(null);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState([]);
 
   useEffect(() => {
-    const handleResize = () => setIsMobileFilters(window.innerWidth < 900);
+    const handleResize = () => setIsMobileFilters(window.innerWidth <= 900);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -316,7 +316,7 @@ function ExpensesPage() {
                 onConfirm={onDeleteSelected}
                 overlayClassName="hotel-popconfirm"
               >
-                <Button danger icon={<FiTrash2 />} loading={deletingBulk}>
+                <Button className="expense-bulk-delete" danger icon={<FiTrash2 />} loading={deletingBulk}>
                   Tanlanganlarni o'chirish ({selectedExpenseIds.length})
                 </Button>
               </Popconfirm></OwnerOnly>
