@@ -828,6 +828,7 @@ function ReportsPage() {
   const dailyReport = dailyResponse?.innerData;
   const dailyGuestRows = dailyReport?.guests || [];
   const dailyOrganizationRows = dailyReport?.organizationGuests || [];
+  const dailyOrdinaryRows = dailyReport?.ordinaryGuests || [];
   const dailyExpenses = dailyReport?.expenses?.items || [];
   const rooms = useMemo(() => roomsData?.innerData || [], [roomsData]);
   const accountingFloorOptions = useMemo(() => {
@@ -1138,9 +1139,9 @@ function ReportsPage() {
                         </header>
 
                         {[
-                          { title: "Aktiv mijozlar ro'yxati", rows: dailyGuestRows, emptyMessage: "Aktiv mijozlar topilmadi" },
-                          { title: "Tashkilot mijozlari ro'yxati", rows: dailyOrganizationRows, emptyMessage: "Tashkilot mijozlari topilmadi" },
-                        ].map(({ title, rows, emptyMessage }) => (
+                          { title: "Oddiy mijozlar ro'yxati", rows: dailyOrdinaryRows, emptyMessage: "Oddiy mijozlar topilmadi", showOrganization: false },
+                          { title: "Tashkilot mijozlari ro'yxati", rows: dailyOrganizationRows, emptyMessage: "Tashkilot mijozlari topilmadi", showOrganization: true },
+                        ].map(({ title, rows, emptyMessage, showOrganization }) => (
                           <section key={title} className="daily-report-section">
                             <div className="daily-report-section-head">
                               <h2>{title}</h2>
@@ -1158,7 +1159,7 @@ function ReportsPage() {
                                 <col className="report-col-transfer" />
                                 <col className="report-col-total" />
                                 <col className="report-col-name" />
-                                <col className="report-col-name" />
+                                {showOrganization ? <col className="report-col-name" /> : null}
                                 <col className="report-col-prepayment-end" />
                                 <col className="report-col-debt-end" />
                               </colgroup>
@@ -1169,10 +1170,10 @@ function ReportsPage() {
                                   <th rowSpan={2}>№ комнаты</th>
                                   <th rowSpan={2}>Кол-во чел.</th>
                                   <th rowSpan={2}>Оплата за сутки</th>
-                                  <th colSpan={3}>Оплата наличными</th>
+                                  <th colSpan={3}>Оплата по перечисления</th>
                                   <th rowSpan={2}>Всего</th>
                                   <th rowSpan={2}>ФИО</th>
-                                  <th rowSpan={2}>Tashkilot</th>
+                                  {showOrganization ? <th rowSpan={2}>Tashkilot</th> : null}
                                   <th rowSpan={2}>Предоплата</th>
                                   <th rowSpan={2}>Задолженность</th>
                                 </tr>
@@ -1197,7 +1198,7 @@ function ReportsPage() {
                                     <td>{formatMoney(guest.transfer)}</td>
                                     <td>{formatMoney((guest.cash || 0) + (guest.card || 0) + (guest.transfer || 0))}</td>
                                     <td>{guest.fullName}</td>
-                                    <td>{guest.organization || "-"}</td>
+                                    {showOrganization ? <td>{guest.organization || "-"}</td> : null}
                                     <td>{formatMoney(guest.closingPrepayment)}</td>
                                     <td>{formatMoney(guest.closingDebt)}</td>
                                   </tr>
@@ -1205,7 +1206,7 @@ function ReportsPage() {
                               {!rows.length ? (
                                 <tr>
                                   <td
-                                    colSpan={13}
+                                    colSpan={showOrganization ? 13 : 12}
                                     style={{ textAlign: "center" }}
                                   >
                                     {emptyMessage}
@@ -1224,7 +1225,7 @@ function ReportsPage() {
                                   <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.transfer || 0), 0))}</td>
                                   <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.cash || 0) + Number(row.card || 0) + Number(row.transfer || 0), 0))}</td>
                                   <td />
-                                  <td />
+                                  {showOrganization ? <td /> : null}
                                   <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))}</td>
                                   <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.closingDebt || 0), 0))}</td>
                                 </tr>
@@ -1302,35 +1303,33 @@ function ReportsPage() {
                             <div className="daily-report-prepayment-card">
                               <span>Oldindan to‘lov</span>
                               <b>
-                                {formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))} so'm
+                                {formatMoney(dailyOrdinaryRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))} so'm
                               </b>
                             </div>
                             <div>
                               <span>Jami aktiv xonalar</span>
                               <b>
-                                {Number(
-                                  dailyReport?.operations?.occupiedRooms || 0,
-                                )}{" "}
+                                {new Set(dailyOrdinaryRows.map((row) => row.roomId || formatRoomLabel(row))).size}{" "}
                                 ta
                               </b>
                             </div>
                             <div>
                               <span>Jami aktiv mijozlar</span>
                               <b>
-                                {Number(dailyReport?.operations?.guests || 0)}{" "}
+                                {dailyOrdinaryRows.reduce((sum, row) => sum + Number(row.guestCount || 0), 0)}{" "}
                                 ta
                               </b>
                             </div>
                             <div>
                               <span>Jami qarzdorlar</span>
                               <b>
-                                {Number(dailyReport?.debt?.debtors || 0)} ta
+                                {dailyOrdinaryRows.filter((row) => Number(row.closingDebt || 0) > 0).length} ta
                               </b>
                             </div>
                             <div>
                               <span>Jami qarz</span>
                               <b>
-                                {formatMoney(dailyReport?.debt?.total)} so'm
+                                {formatMoney(dailyOrdinaryRows.reduce((sum, row) => sum + Number(row.closingDebt || 0), 0))} so'm
                               </b>
                             </div>
                             <div>
