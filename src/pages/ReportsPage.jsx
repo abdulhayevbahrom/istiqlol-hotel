@@ -1202,7 +1202,7 @@ function ReportsPage() {
                                     <td>{formatMoney(guest.closingDebt)}</td>
                                   </tr>
                               ))}
-                              {!dailyGuestRows.length ? (
+                              {!rows.length ? (
                                 <tr>
                                   <td
                                     colSpan={13}
@@ -1212,21 +1212,21 @@ function ReportsPage() {
                                   </td>
                                 </tr>
                               ) : null}
-                              {dailyGuestRows.length ? (
+                              {rows.length ? (
                                 <tr className="daily-report-total-row">
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.openingPrepayment || 0), 0))}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.openingDebt || 0), 0))}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.openingPrepayment || 0), 0))}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.openingDebt || 0), 0))}</td>
                                   <td>Всего</td>
-                                  <td>{dailyGuestRows.reduce((sum, row) => sum + Number(row.guestCount || 0), 0)}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.dailyRate || 0), 0))}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.cash || 0), 0))}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.card || 0), 0))}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.transfer || 0), 0))}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.cash || 0) + Number(row.card || 0) + Number(row.transfer || 0), 0))}</td>
+                                  <td>{rows.reduce((sum, row) => sum + Number(row.guestCount || 0), 0)}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.dailyRate || 0), 0))}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.cash || 0), 0))}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.card || 0), 0))}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.transfer || 0), 0))}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.cash || 0) + Number(row.card || 0) + Number(row.transfer || 0), 0))}</td>
                                   <td />
                                   <td />
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))}</td>
-                                  <td>{formatMoney(dailyGuestRows.reduce((sum, row) => sum + Number(row.closingDebt || 0), 0))}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.closingPrepayment || 0), 0))}</td>
+                                  <td>{formatMoney(rows.reduce((sum, row) => sum + Number(row.closingDebt || 0), 0))}</td>
                                 </tr>
                               ) : null}
                             </tbody>
